@@ -105,10 +105,13 @@ foreach my $file (@ARGV) {
   $obj =~ s/^.*\///;
 
   # simple version. depend on object files only
-  if (0) {
+  if (1) {
     print DEP "$obj : $file";
     foreach $obj (@uselist) {
       $obj =~ s/[fF]90$/o/;
+      # chop off any leading path for correct object
+      # names when building outside the source dir
+      $obj =~ s/^.*\///;
       print DEP " $obj";
     }
     print DEP "\n";
