@@ -1,0 +1,6 @@
+! minimal test input
+
+&sysinfo
+  natoms=109
+/
+
