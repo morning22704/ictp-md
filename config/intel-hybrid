@@ -4,7 +4,7 @@ SHELL=/bin/sh
 # configuration section
 FC=mpiifort
 FPPFLAGS=-D_USE_MPI
-OPTFLAGS= -O2
+OPTFLAGS= -O2 -warn all
 ARCHFLAGS=-msse3 -pc64 -openmp
 LINKFLAGS=-static-intel
 ##########################################
