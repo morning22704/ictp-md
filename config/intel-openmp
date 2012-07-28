@@ -3,7 +3,6 @@ SHELL=/bin/sh
 ##########################################
 # configuration section
 FC=ifort
-#FPPFLAGS=-D_PARALLEL
 FPPFLAGS=
 OPTFLAGS= -O2
 ARCHFLAGS=-msse3 -pc64 -openmp

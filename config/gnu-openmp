@@ -1,12 +1,12 @@
-# intel fortran 11.x, serial compile
+# GNU fortran, multi-threaded compile
 SHELL=/bin/sh
 ##########################################
 # configuration section
-FC=ifort
+FC=gfortran
 FPPFLAGS=
 OPTFLAGS= -O2
-ARCHFLAGS=-msse3 -pc64
-LINKFLAGS=-static-intel
+ARCHFLAGS=-march=core2 -msse3 -mpc64 -fopenmp
+LINKFLAGS=
 ##########################################
 include ../config/Common.mk
 ##########################################

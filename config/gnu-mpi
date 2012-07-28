@@ -1,12 +1,12 @@
-# intel fortran 11.x, serial compile
+# GNU gfortran, MPI compile
 SHELL=/bin/sh
 ##########################################
 # configuration section
-FC=ifort
-FPPFLAGS=
+FC=mpif77
+FPPFLAGS=-D_USE_MPI
 OPTFLAGS= -O2
-ARCHFLAGS=-msse3 -pc64
-LINKFLAGS=-static-intel
+ARCHFLAGS=-march=core2 -msse3 -mpc64
+LINKFLAGS=
 ##########################################
 include ../config/Common.mk
 ##########################################
