@@ -11,7 +11,7 @@ OBJ=$(PPS:.F90=.o) $(SRC:.f90=.o)
 FCFLAGS=$(OPTFLAGS) $(ARCHFLAGS)
 ##########################################
 ##########################################
-default: version depend compile
+default: depend version compile
 compile: $(EXE)
 
 clean:
