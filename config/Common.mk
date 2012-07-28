@@ -28,10 +28,9 @@ $(EXE): $(OBJ)
 	$(FC) -o $@ $(FCFLAGS) $(LINKFLAGS) $^
 
 ##########################################
-version.f90:
-	../config/mkversion.sh
+version.f90: ../config/mkversion.sh
+	../config/mkversion.sh FC="$(FC)" FCFLAGS="$(FCFLAGS)"
 
 .depend: $(PPS) $(SRC)
-	../config/mkversion.sh
 	../config/mkdep.pl -o $@ -I ../src $^
 -include .depend
