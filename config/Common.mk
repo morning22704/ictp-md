@@ -2,14 +2,16 @@
 ##########################################
 VPATH=../src
 EXE=asap-md.x
-SRC=main.f90 kinds.f90 constants.f90 io.f90 \
-	threading.f90
+# sources w/o preprocessing
+SRC=main.f90 kinds.f90 constants.f90 io.f90 threading.f90
+# sources requiring preprocessing
 PPS=messages.F90
+# all objects
 OBJ=$(PPS:.F90=.o) $(SRC:.f90=.o)
 FCFLAGS=$(OPTFLAGS) $(ARCHFLAGS)
 ##########################################
 ##########################################
-default: depend version compile
+default: version depend compile
 compile: $(EXE)
 
 clean:
@@ -44,5 +46,5 @@ $(EXE): version.o $(OBJ)
 ##########################################
 # dependency tracking
 .depend depend: $(PPS) $(SRC) version.f90
-	@perl -w ../config/mkdep.pl -o .depend -I ../src $^
+	@perl -w ../config/mkdep.pl -I ../src $^
 -include .depend
