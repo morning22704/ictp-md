@@ -12,24 +12,23 @@ FCFLAGS=$(OPTFLAGS) $(ARCHFLAGS)
 default: $(EXE)
 
 clean:
-	rm -f $(OBJ) $(EXE) *.mod .depend version.*
+	-rm -f $(OBJ) $(EXE) *.mod .depend version.*
 
-.PHONY: default clean version
-
+.PHONY: clean default version
 ##########################################
 # generate version header
-version.f90: $(OBJ)
-	../config/mkversion.sh FC="$(FC)" FCFLAGS="$(FCFLAGS)"
+version.f90: $(SRC) $(PPS) ../config/mkversion.sh ../config/Common.mk
+	@../config/mkversion.sh FC="$(FC)" FCFLAGS="$(FCFLAGS)"
 
 ##########################################
 # pattern rules
 .SUFFIXES:
 .SUFFIXES: .o .f90 .F90
 
-.F90.o:
+%.o: %.F90
 	$(FC) $(FPPFLAGS) -c $(FCFLAGS) $<
 
-.f90.o:
+%.o: %.f90
 	$(FC) -c $(FCFLAGS) $<
 
 $(EXE): version.o $(OBJ)
@@ -37,6 +36,6 @@ $(EXE): version.o $(OBJ)
 
 ##########################################
 # dependency tracking
-.depend: $(PPS) $(SRC) version.f90
-	../config/mkdep.pl -o $@ -I ../src $^
+.depend: $(PPS) $(SRC)
+	@../config/mkdep.pl -o $@ -I ../src $^
 -include .depend
