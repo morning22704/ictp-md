@@ -37,5 +37,5 @@ $(EXE): version.o $(OBJ)
 ##########################################
 # dependency tracking
 .depend: $(PPS) $(SRC)
-	@../config/mkdep.pl -o $@ -I ../src $^
+	@perl -w ../config/mkdep.pl -o $@ -I ../src $^
 -include .depend
