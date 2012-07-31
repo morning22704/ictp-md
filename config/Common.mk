@@ -6,7 +6,7 @@ EXE=asap-md.x
 SRC=main.f90 kinds.f90 constants.f90 io.f90 threading.f90 \
 	sysinfo.f90
 # sources requiring preprocessing
-PPS=messages.F90
+PPS=message_passing.F90
 # all objects
 OBJ=$(PPS:.F90=.o) $(SRC:.f90=.o)
 FCFLAGS=$(OPTFLAGS) $(ARCHFLAGS)

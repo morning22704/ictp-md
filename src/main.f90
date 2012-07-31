@@ -1,9 +1,10 @@
 ! ye who enter here beware of dragons
 program asap_md
+
   ! low level modules
   use io
-  use messages
-  use threading
+  use message_passing
+  use threading, only : thr_init, thr_header
 
   ! simulation modules
   use sysinfo
@@ -11,25 +12,23 @@ program asap_md
   implicit none
 
   ! initialize modules as needed
-  call init_messages
-  call init_threads
+  call mp_init
+  call thr_init
 
   call init_sysinfo
 
   ! print banner 
   call version
-  call print_messages
-  if (myrank == ioproc) write (stdout,*) separator
-  call print_threads
-  if (myrank == ioproc) write (stdout,*) separator
+  call mp_header
+  call thr_header
 
-  ! read input
+  ! read run settings from input
   call read_sysinfo(stdin)
 
-  if (myrank == ioproc)  write(stdout,*) 'Input definitions:'
+  ! echo input settings
   call print_sysinfo(stdout)
 
   ! finish off
-  call end_messages
+  call mp_finish
   
 end program asap_md
