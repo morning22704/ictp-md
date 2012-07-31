@@ -7,10 +7,10 @@ flags="$@"
 cat <<EOF
 subroutine version
   use io, only: stdout
-  use message_passing, only: mp_info
+  use message_passing, only: mp_ioproc
   implicit none
 
-  if (mp_info%myrank == mp_info%ioproc) then
+  if (mp_ioproc()) then
      write (stdout,*) '================'
      write (stdout,*) ' ASAP MD REBOOT '
      write (stdout,*) '================'

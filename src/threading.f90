@@ -21,14 +21,14 @@ contains
   ! print header
   subroutine thr_header
     use io, only : stdout, separator
-    use message_passing, only : mp_info
+    use message_passing, only : mp_ioproc
     implicit none
     integer have_threads
 
     have_threads = 0
 !$  have_threads = 1
 
-    if (mp_info%myrank == mp_info%ioproc) then
+    if (mp_ioproc()) then
        if (have_threads > 0) then
           write(stdout,*) 'OpenMP enabled build. Number of threads :',nthreads
        else

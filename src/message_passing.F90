@@ -5,7 +5,6 @@ module message_passing
   implicit none
 
   private
-
   type mp_info_type
      integer :: nprocs ! number of message passing processes
      integer :: myrank ! my rank on communicator
@@ -13,9 +12,11 @@ module message_passing
      integer :: comm   ! communicator
   end type mp_info_type
 
-  type (mp_info_type), public :: mp_info
+  type (mp_info_type) :: mp_info
+
   public :: mp_init, mp_header, mp_finish
   public :: mp_error, mp_bcast
+  public :: mp_ioproc
 
   interface mp_bcast
      module procedure bcast_int
@@ -23,6 +24,14 @@ module message_passing
   end interface
 
 contains
+
+  ! returns true if this is an io task
+  function mp_ioproc()
+    implicit none
+    logical mp_ioproc
+
+    mp_ioproc = (mp_info%myrank == mp_info%ioproc)
+  end function mp_ioproc
 
   ! set up message passing environment
   subroutine mp_init
@@ -33,7 +42,7 @@ contains
     integer :: ierr
 #endif
 
-    ! set defaults for non-mpi
+    ! set defaults for non-mpi runs
     mp_info%nprocs = 1
     mp_info%myrank = 0
     mp_info%ioproc = 0
@@ -42,8 +51,8 @@ contains
 #if defined(_USE_MPI)
     mp_info%comm=MPI_COMM_WORLD
     call mpi_init(ierr)
-    call mpi_comm_size(comm,mp_info%nprocs,ierr)
-    call mpi_comm_rank(comm,mp_info%myrank,ierr)
+    call mpi_comm_size(mp_info%comm,mp_info%nprocs,ierr)
+    call mpi_comm_rank(mp_info%comm,mp_info%myrank,ierr)
 #endif
   end subroutine mp_init
 
@@ -52,7 +61,7 @@ contains
     use io, only : stdout,separator
     implicit none
 
-    if (mp_info%myrank == mp_info%ioproc) then
+    if (mp_ioproc()) then
        write(stdout,*) 'Number of message passing processes :    ', &
             mp_info%nprocs
        write(stdout,*) separator

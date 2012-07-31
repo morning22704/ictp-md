@@ -1,6 +1,6 @@
 ! module for global simulation system data information
 module sysinfo
-  use message_passing, only: mp_info, mp_bcast, mp_error
+  use message_passing, only: mp_ioproc, mp_bcast, mp_error
   implicit none
 
   private
@@ -25,7 +25,7 @@ contains
     namelist /sysinfo/ natoms, ntypes, nobjs, nafirst, nalast
 
     ! input is only read by io task
-    if (mp_info%myrank /= mp_info%ioproc) return
+    if (.NOT. mp_ioproc()) return
 
     read(channel,nml=sysinfo)
     if (natoms < 1) then
@@ -50,7 +50,7 @@ contains
 
     namelist /sysinfo/ natoms, ntypes, nobjs, nafirst, nalast
 
-    if (mp_info%myrank /= mp_info%ioproc) return
+    if (.NOT. mp_ioproc()) return
     write(channel,nml=sysinfo)
   end subroutine print_sysinfo
 end module sysinfo
