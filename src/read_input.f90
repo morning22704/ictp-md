@@ -1,4 +1,4 @@
-! module for global simulation system data information
+! module for reading input 
 module sysinfo
   use message_passing, only: mp_ioproc, mp_bcast, mp_error
   implicit none

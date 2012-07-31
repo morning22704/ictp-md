@@ -27,6 +27,43 @@ if (exists($opts{o})) {
   $out = $opts{o};
 }
 
+# loop over all remaining arguments
+# which are expected to be file names
+# of fortran 90 sources.
+foreach my $file (@ARGV) {
+  @uselist = ();
+  open FP, "<$file";
+
+  # read through file. this is no real
+  # fortran parser and can be easily fooled. 
+  while (<FP>) {
+
+    # skip over comments.
+    next if (/\s*!.*/);
+
+    # handle module statements
+    if (/^\s*module\s+([a-zA-Z0-9_]+)\s*.*/) {
+      my ($modname,$skipmod,$donemod) = ($1,0,0);
+
+      # convert to downcase
+      $modname =~ tr/[A-Z]/[a-z]/;
+
+      next if ($modname eq 'procedure');
+
+      # don't register disallowed modules
+      # as dependencies (e.g. for system wide modules).
+      foreach my $mod (@skipmods) {
+        if ($mod eq $modname) { $skipmod = 1;}
+      }
+      next if ($skipmod);
+
+      print STDERR "WARNING: module $modname already defined in file '$modlist{$modname}'\n" if (exists $modlist{$modname});
+      $modlist{$modname} = $file;
+    }
+  }
+  close FP;
+}
+
 # we write to a temporary file and
 # move it over the real file only
 # after a completely successful run.
@@ -50,6 +87,9 @@ foreach my $file (@ARGV) {
     if (/^\s*use\s+([a-zA-Z0-9_]+)\s*.*/) {
       my ($modname,$skipmod,$donemod) = ($1,0,0);
 
+      # convert to downcase
+      $modname =~ tr/[A-Z]/[a-z]/;
+
       # don't register disallowed modules
       # as dependencies (e.g. for system wide modules).
       foreach my $mod (@skipmods) {
@@ -57,39 +97,10 @@ foreach my $file (@ARGV) {
       }
       next if ($skipmod);
 
-      # check if the module is in local directory
-      my $newfile = $modname . '.f90';
-      if (-f $newfile) {
-        push @uselist,  $newfile;
-        $donemod = 1;
+      if (exists $modlist{$modname}) {
+        push @uselist, $modlist{$modname};
       } else {
-        $newfile = $modname . '.F90';
-        if (-f $newfile) {
-          push @uselist,  $newfile;
-          $donemod = 1;
-        }
-      }
-      next if ($donemod);
-
-      # check if the module is in an include directory
-      foreach my $dir (@searchdirs) {
-        $dir =~ s/\/$//;
-        my $newfile = $dir . '/' . $modname . '.f90';
-        if (-f $newfile) {
-          push @uselist,  $newfile;
-          $donemod = 1;
-        } else {
-          $newfile = $dir . '/' . $modname . '.F90';
-          if (-f $newfile) {
-            push @uselist,  $newfile;
-          $donemod = 1;
-          }
-        }
-        last if ($donemod);
-      }
-
-      if (! $donemod) {
-        print STDERR "WARNING: no match found for module '$modname' in file '$file'\n";
+        print STDERR "WARNING: no match found for module '$modname' used in file '$file'\n";
       }
     }
   }
@@ -104,30 +115,16 @@ foreach my $file (@ARGV) {
   # names when building outside the source dir
   $obj =~ s/^.*\///;
 
-  # simple version. depend on object files only
-  if (1) {
-    print DEP "$obj : $file";
-    foreach $obj (@uselist) {
-      $obj =~ s/[fF]90$/o/;
-      # chop off any leading path for correct object
-      # names when building outside the source dir
-      $obj =~ s/^.*\///;
-      print DEP " $obj";
-    }
-    print DEP "\n";
-  } else {
-    # use dependencies on .mod files. may require
-    # much less recompiles if .mod files are not
-    # changed, even if the source changes (as it
-    # happens with gfortran.
-    print DEP "$obj : $file";
-    foreach $obj (@uselist) {
-      $obj =~ s/[fF]90$/mod/;
-      print DEP " $obj";
-    }
-    print DEP "\n";
-
+  # we don't include module depencies, use object files only
+  print DEP "$obj : $file";
+  foreach $obj (@uselist) {
+    $obj =~ s/[fF](90|)$/o/;
+    # chop off any leading path for correct object
+    # names when building outside the source dir
+    $obj =~ s/^.*\///;
+    print DEP " $obj";
   }
+  print DEP "\n";
 }
 close DEP;
 rename $out . '.tmp', $out;
