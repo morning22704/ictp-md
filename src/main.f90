@@ -3,6 +3,7 @@ program asap_md
 
   ! low level modules
   use io
+  use header
   use message_passing
   use threading, only : thr_init, thr_header
 

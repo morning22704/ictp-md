@@ -5,6 +5,10 @@ date=`date -R`
 host=`hostname -s`
 flags="$@"
 cat <<EOF
+module header
+
+contains
+
 subroutine version
   use io, only: stdout
   use message_passing, only: mp_ioproc
@@ -26,6 +30,7 @@ cat <<EOF
      write (stdout,*) '-------------------------------------------------------'
   end if
 end subroutine version
+end module header
 EOF
 
 # check if changed and replace
