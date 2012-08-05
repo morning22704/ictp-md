@@ -1,15 +1,16 @@
-! multi-threading support
+! wrapper module for multi-threading support via OpenMP
 module threading
   implicit none
 
   private
-  public :: thr_init, thr_header
+  public :: thr_init, thr_header, thr_get_num_threads
 
-  integer, public :: nthreads ! number of active threads
+  integer :: nthreads ! number of active threads
 
 contains
 
   ! determine the total number of threads available
+  ! falls back to 1, if compiled w/o OpenMP support
   subroutine thr_init
     implicit none
 !$  integer, external :: omp_get_max_threads
@@ -17,6 +18,13 @@ contains
     nthreads = 1
 !$  nthreads = omp_get_max_threads()
   end subroutine thr_init
+
+  ! function to for read-only access to nthreads
+  function thr_get_num_threads()
+    integer :: thr_get_num_threads
+
+    thr_get_num_threads = nthreads
+  end function thr_get_num_threads
 
   ! print header
   subroutine thr_header

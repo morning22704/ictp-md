@@ -2,6 +2,7 @@
 module message_passing
 
   use kinds
+  use memory, only: adjust_mem
   implicit none
 
   private
@@ -11,7 +12,6 @@ module message_passing
      integer :: ioproc ! rank that does i/o
      integer :: comm   ! communicator
   end type mp_info_type
-
   type (mp_info_type) :: mp_info
 
   public :: mp_init, mp_header, mp_finish
@@ -54,6 +54,7 @@ contains
     call mpi_comm_size(mp_info%comm,mp_info%nprocs,ierr)
     call mpi_comm_rank(mp_info%comm,mp_info%myrank,ierr)
 #endif
+    call adjust_mem(4*sp)
   end subroutine mp_init
 
   ! print message passing header

@@ -3,8 +3,8 @@
 VPATH=../src
 EXE=asap-md.x
 # sources w/o preprocessing
-SRC=main.f90 kinds.f90 constants.f90 io.f90 threading.f90 \
-	read_input.f90
+SRC=main.f90 io.f90 kinds.f90 constants.f90 memory.f90 threading.f90 \
+	read_input.f90 sysinfo.f90
 # sources requiring preprocessing
 PPS=message_passing.F90
 # all objects

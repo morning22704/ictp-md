@@ -1,33 +1,40 @@
 ! ye who enter here beware of dragons
 program asap_md
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! low level modules
+  use kinds
+  use memory
   use io
   use header
-  use message_passing
+  ! parallel programming modules
+  use message_passing, only : mp_init, mp_header, mp_finish
   use threading, only : thr_init, thr_header
-
   ! simulation modules
-  use sysinfo
-
+  use read_input
+  !
   implicit none
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  ! initialize modules as needed
+  ! initialize basic modules as needed
+  call memory_init
   call mp_init
   call thr_init
-
-  call init_sysinfo
+  call input_init
 
   ! print banner 
   call version
   call mp_header
   call thr_header
 
-  ! read run settings from input
-  call read_sysinfo(stdin)
+  call memory_print(stdout)
+
+  ! read system settings from input
+  call input_read(stdin)
 
   ! echo input settings
-  call print_sysinfo(stdout)
+  call input_print(stdout)
+  call memory_print(stdout)
 
   ! finish off
   call mp_finish
