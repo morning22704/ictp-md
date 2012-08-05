@@ -21,6 +21,9 @@ module message_passing
   interface mp_bcast
      module procedure bcast_int
      module procedure bcast_dp
+     module procedure bcast_xyz_vec
+     module procedure bcast_dp_vec
+     module procedure bcast_int_vec
   end interface
 
 contains
@@ -114,5 +117,45 @@ contains
     call mpi_bcast(val,1,MPI_DOUBLE_PRECISION,mp_info%ioproc,mp_info%comm,ierr)
 #endif
   end subroutine bcast_dp
+
+  subroutine bcast_xyz_vec(val)
+    implicit none
+    type(xyz_vec), intent(inout) :: val
+#if defined(_USE_MPI)
+    integer :: ierr
+    include 'mpif.h'
+
+    call mpi_bcast(val%x,val%size,MPI_DOUBLE_PRECISION,&
+         mp_info%ioproc,mp_info%comm,ierr)
+    call mpi_bcast(val%y,val%size,MPI_DOUBLE_PRECISION,&
+         mp_info%ioproc,mp_info%comm,ierr)
+    call mpi_bcast(val%z,val%size,MPI_DOUBLE_PRECISION,&
+         mp_info%ioproc,mp_info%comm,ierr)
+#endif
+  end subroutine bcast_xyz_vec
+
+  subroutine bcast_dp_vec(val)
+    implicit none
+    type(dp_vec), intent(inout) :: val
+#if defined(_USE_MPI)
+    integer :: ierr
+    include 'mpif.h'
+
+    call mpi_bcast(val%v,val%size,MPI_DOUBLE_PRECISION,&
+         mp_info%ioproc,mp_info%comm,ierr)
+#endif
+  end subroutine bcast_dp_vec
+
+  subroutine bcast_int_vec(val)
+    implicit none
+    type(int_vec), intent(inout) :: val
+#if defined(_USE_MPI)
+    integer :: ierr
+    include 'mpif.h'
+
+    call mpi_bcast(val%v,val%size,MPI_DOUBLE_PRECISION,&
+         mp_info%ioproc,mp_info%comm,ierr)
+#endif
+  end subroutine bcast_int_vec
 
 end module message_passing
