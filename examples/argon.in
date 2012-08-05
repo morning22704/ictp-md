@@ -2,5 +2,8 @@
 
 &sysinfo
   natoms=109
+  ntypes=1
+  topofile='argon109.xyz'
+  geomfile='argon109.xyz'
 /
 
