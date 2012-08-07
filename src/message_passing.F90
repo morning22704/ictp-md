@@ -92,7 +92,7 @@ contains
 #if defined(_USE_MPI)
     call mpi_abort(mp_info%comm,10,ierr)
 #else
-    stop 'fatal error'
+    stop 'Fatal error'
 #endif
   end subroutine mp_error
 
