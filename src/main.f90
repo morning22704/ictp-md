@@ -36,6 +36,12 @@ program asap_md
   call input_print(stdout)
   call memory_print(stdout)
 
+  ! open restart channel and verify validity and version
+  open(unit=resout, file='new.restart', form='formatted',&
+       access='sequential', action='write', status='unknown')
+  call input_print(resout)
+  close(resout)
+
   ! finish off
   call mp_finish
   
