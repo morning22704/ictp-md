@@ -1,6 +1,6 @@
 ! module for reading input 
 module read_input
-  use sysinfo
+  use sysinfo_io
 !  use runinfo
 !  use output
   implicit none

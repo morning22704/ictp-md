@@ -1,5 +1,5 @@
 ! module to manage data of the current system
-module sysinfo
+module sysinfo_io
   use io, only : resin
   use kinds
   use constants
@@ -15,9 +15,11 @@ module sysinfo
   type (dp_vec)  :: chg
   type (int_vec) :: typ
   character(len=255) :: topofile, geomfile, restfile
-  integer, parameter :: rest_major=1, rest_minor=0
 
-  public :: sysinfo_init, sysinfo_read, sysinfo_comm, sysinfo_print
+  namelist /sysinfo/ natoms, ntypes, nbonds, nbtypes, nangles, natypes, &
+          restart, topofile, geomfile, restfile
+
+  public :: sysinfo_init, sysinfo_read, sysinfo_print
   !  public :: sysinfo_restart
   public :: use_restart
 !  public :: get_natoms, get_ntypes
@@ -54,31 +56,36 @@ contains
   ! read sysinfo parameters
   subroutine sysinfo_read(channel)
     integer, intent(in) :: channel
-    integer :: major, minor, nthr, i
-    character(len=7) :: label
-    namelist /sysinfo/ natoms, ntypes, nbonds, nbtypes, nangles, natypes, &
-          topofile, geomfile, restfile
+    integer :: nthr, i, ierr
 
     ! input is only read by io task
     if (mp_ioproc()) then
 
-       read(channel,nml=sysinfo)
+       read(channel,nml=sysinfo,iostat=ierr)
+       if (ierr /= 0) call mp_error('Failure reading &sysinfo namelist')
 
+       !FIXME: add code here that tries to infer natoms, ntypes
+       ! from the geometry/topology files and other properties, too.
+       ! XXX: should we use molfile here? convenient, but dependency
+
+       ! for the sysinfo namelist, the restart overrides the input
        if (restart) then
           ! open restart channel and verify validity and version
-          open(unit=resin, file=TRIM(restfile), form='unformatted', &
-               action='read', status='old')
-          read(resin) label, major, minor
-          read(resin) natoms, ntypes
-       else
-          ! some consistency checks
-          if (natoms <= 0) then
-             call mp_error('natoms must be > 0 w/o restart')
-          endif
-          if (ntypes <= 0) then
-             call mp_error('ntypes must be > 0 w/o restart')
-          endif
-       end if
+          open(unit=resin, file=TRIM(restfile), form='formatted', &
+               access='sequential', action='read', status='old', iostat=ierr)
+          if (ierr /= 0) call mp_error('Failure opening restart file')
+
+          read(unit=resin, nml=sysinfo, iostat=ierr)
+          if (ierr /= 0) call mp_error('Failure reading &sysinfo restart')
+       endif
+
+       ! some consistency checks
+       if (natoms <= 0) then
+          call mp_error('natoms must be > 0')
+       endif
+       if (ntypes <= 0) then
+          call mp_error('ntypes must be > 0')
+       endif
     end if
 
     ! broadcast basic system info
@@ -94,14 +101,14 @@ contains
     call alloc_vec(for,nthr*natoms)
 
     if (restart) then
-       read(resin) (typ%v(i),i=1,natoms)
-       read(resin) (pos%x(i),i=1,natoms)
-       read(resin) (pos%y(i),i=1,natoms)
-       read(resin) (pos%z(i),i=1,natoms)
-       read(resin) (chg%v(i),i=1,natoms)
-       read(resin) (vel%x(i),i=1,natoms)
-       read(resin) (vel%y(i),i=1,natoms)
-       read(resin) (vel%z(i),i=1,natoms)       
+ !      read(resin) (typ%v(i),i=1,natoms)
+ !      read(resin) (pos%x(i),i=1,natoms)
+ !      read(resin) (pos%y(i),i=1,natoms)
+ !      read(resin) (pos%z(i),i=1,natoms)
+ !      read(resin) (chg%v(i),i=1,natoms)
+ !      read(resin) (vel%x(i),i=1,natoms)
+ !      read(resin) (vel%y(i),i=1,natoms)
+ !      read(resin) (vel%z(i),i=1,natoms)       
     else 
        ! initialize charge and velocities to zero
        chg%v(:) = d_zero
@@ -117,9 +124,6 @@ contains
     call mp_bcast(vel)
   end subroutine sysinfo_read
 
-  subroutine sysinfo_comm
-  end subroutine sysinfo_comm
-
   ! determine, if input data is to be read from a restart
   function use_restart()
     logical use_restart
@@ -128,10 +132,12 @@ contains
 
   subroutine sysinfo_print(channel)
     integer, intent(in) :: channel
+    integer :: ierr
 
-    namelist /sysinfo/ natoms, ntypes, nbonds, nbtypes, nangles, natypes, &
-         restart, topofile, geomfile, restfile
-    if (.NOT. mp_ioproc()) return
-    write(channel,nml=sysinfo)
+    if (mp_ioproc()) then
+       write(unit=channel,nml=sysinfo,iostat=ierr)
+       if (ierr /= 0) call mp_error('failed to write &sysinfo namelist')
+    endif
+    
   end subroutine sysinfo_print
-end module sysinfo
+end module sysinfo_io
