@@ -5,7 +5,7 @@ SHELL=/bin/sh
 FC=ifort
 FPPFLAGS=
 OPTFLAGS= -O2 -warn all
-ARCHFLAGS=-msse3 -pc64 -std95
+ARCHFLAGS=-msse3 -pc64 -std95 -g
 LINKFLAGS=-static-intel
 ##########################################
 include ../config/Common.mk

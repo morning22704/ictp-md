@@ -4,7 +4,7 @@ SHELL=/bin/sh
 # configuration section
 FC=gfortran
 FPPFLAGS=
-OPTFLAGS= -O3 -Wall -std=f95 -ftree-vectorize -ffast-math
+OPTFLAGS= -O3 -Wall -std=f95 -ftree-vectorize -ffast-math -g
 ARCHFLAGS=-march=native -mpc64
 LINKFLAGS=
 ##########################################
