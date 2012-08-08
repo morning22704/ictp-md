@@ -1,48 +1,82 @@
+ICTP-MD
+=======
 
 Installation Instructions
+------------------------------------------------------------------------
 
 1) Prerequisites
 
 a) required
-- A reasonably standard compliant Fortran 95 compiler. 
-- GNU Make
-- perl 5.x
-- a Unix-like environment (bourne shell, rm command)
+- A reasonably standard compliant Fortran 95  compiler is required.  The
+code  uses  features  that  are  new  in Fortran  90/95  excessively  to
+establish a modular and  maintainable programming style of an extensible
+package.  GNU gfortran version 4.5.1  and Intel ifort version 11.1  were
+tested successfully.
 
-b) optional
-- Doxygen 1.8.x (for re-generating the manual)
-- Fortran 2003 or 2008 compliant compiler (use -D_F2003)
-- MPI-1 library (OpenMPI is recommended)
+- GNU make. Makefiles were only tested with GNU make and employ features
+ like VPATH that are not portable to all make programs
+
+- perl 5.x. A script written in perl is used to automatically generate
+ dependencies between object files.
+
+- A Unix-like environment (bourne shell, rm command)
+
+b) desirable
+
+- OpenMP 2.x support in the Fortran compiler for multi-thread support
+
+- An  MPI  library  with Fortran 77  bindings  for  multi-node  parallel
+support.  The MPI  library  has  to  be  compatible  with  the  selected
+compiler; only APIs from the MPI-1 standard are used.  OpenMPI is highly
+recommended, but practically all available MPI libraries should work.
+
+c) optional
+- Doxygen 1.8.x, Latex, graphviz for re-generating the manual
+
+- git to access the development sources
+
+- tar for packaging
 
 2) Compilation
-a) Out-of-source compilation
-  The build system is set up to allow compiling the code
-  in a directory different from where the sources are. 
-  This has the benefit that multiple variants (different
-  compiler flags settings, debuggind enabled/disabled,
-  MPI enabled/disabled, or OpenMP enabled/disabled) can
-  be compiled from the same sources at the same time. 
-  
-  - create a directory at the top level called
-   build-<my-config> (where <my-config> can be 
-   any text and change into this directory
-  - create a copy or symbolic link from one of
-   the configuration templates in the config directory
-   under the name Makefile
-  - adjust the compiler settings as needed
-  - compile with: make
-   this should automatically create dependencies,
-   the version header file and then the executable.
 
-  you can repeat the process for multiple configurations
-  and use the mkall.sh script to recompile all of them
-  from scratch in one go.
+Compilation is done via a platform specific makefile that includes a
+common makefile with generic rules for all platforms.
+
+a) Out-of-source compilation
+
+The build system  is set up to allow  compiling the code in  a directory
+different  from  where the sources  are.  This method  of compilation is
+highly recommended since  it  has  the  benefit  that  multiple variants
+(different  compiler  flags  settings,  debugging  enabled/disabled, MPI
+enabled/disabled,  or OpenMP enabled/disabled)  can be compiled from the
+same sources at the same time.
+  
+- Create  a directory at the top  level called  build-<my-config> (where
+<my-config> can be any text and change into this directory
+
+- Create a copy or symbolic link from one of the configuration templates
+in the config directory under the name Makefile
+
+- Adjust the compiler settings as needed
+
+- Run "make". This should automatically create dependencies, the version
+header file, compile all objects and then linke the executable.
+
+- Run "make doc" to generate the embedded documentation (optional)
+
+You can repeat the process for multiple configurations.
 
 b) In-source compilation
-  Skip the first step from above and symlink or copy
-  the Makefile into the source directory. 
 
-TODO: 
-  - document testing
-  - document manual generation
+This is also supported. The only difference to the out-of-source compile
+is that you have to copy or symlink or copy the Makefile into the source
+directory and then continue like before.
 
+3) Validation
+
+(to be added)
+
+------------------------------------------------------------------------
+Local Variables:
+mode: text
+End:

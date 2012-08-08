@@ -1,20 +1,19 @@
-# Compiled Object files and executables
+# Object files, modules and executables
 *.slo
 *.lo
 *.o
 *.mod
 *.x
 
-# Compiled Dynamic libraries
+# Libraries
 *.so
-
-# Compiled Static libraries
 *.lai
 *.la
 *.a
 
-# emacs backup files
+# emacs backup files and vim lock files
 *~
-
+*.swp
 # build directories
 build-*
+ictp-md-manual.pdf
