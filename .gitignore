@@ -1,7 +1,9 @@
-# Compiled Object files
+# Compiled Object files and executables
 *.slo
 *.lo
 *.o
+*.mod
+*.x
 
 # Compiled Dynamic libraries
 *.so
@@ -10,3 +12,9 @@
 *.lai
 *.la
 *.a
+
+# emacs backup files
+*~
+
+# build directories
+build-*

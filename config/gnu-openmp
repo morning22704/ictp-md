@@ -1,0 +1,12 @@
+# GNU fortran, multi-threaded compile
+SHELL=/bin/sh
+##########################################
+# configuration section
+FC=gfortran
+FPPFLAGS=
+OPTFLAGS= -O2 -Wall -std=f95 -g
+ARCHFLAGS=-march=core2 -msse3 -mpc64 -fopenmp
+LINKFLAGS=
+##########################################
+include ../config/Common.mk
+##########################################

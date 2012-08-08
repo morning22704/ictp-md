@@ -1,0 +1,12 @@
+# intel fortran 11.x, MPI+OpenMP compile
+SHELL=/bin/sh
+##########################################
+# configuration section
+FC=mpiifort
+FPPFLAGS=-D_USE_MPI
+OPTFLAGS= -O2 -warn all
+ARCHFLAGS=-msse3 -pc64 -openmp -std95 -g
+LINKFLAGS=-static-intel
+##########################################
+include ../config/Common.mk
+##########################################

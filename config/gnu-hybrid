@@ -1,0 +1,12 @@
+# GNU gfortran, MPI+OpenMP compile
+SHELL=/bin/sh
+##########################################
+# configuration section
+FC=mpif77
+FPPFLAGS=-D_USE_MPI
+OPTFLAGS= -O2 -Wall -std=f95 -g
+ARCHFLAGS=-march=core2 -msse3 -mpc64 -fopenmp
+LINKFLAGS=
+##########################################
+include ../config/Common.mk
+##########################################

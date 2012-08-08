@@ -1,0 +1,12 @@
+# intel fortran 11.x, serial compile
+SHELL=/bin/sh
+##########################################
+# configuration section
+FC=ifort
+FPPFLAGS=
+OPTFLAGS= -O2 -warn all
+ARCHFLAGS=-msse3 -pc64 -std95 -g
+LINKFLAGS=-static-intel
+##########################################
+include ../config/Common.mk
+##########################################
