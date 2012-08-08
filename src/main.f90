@@ -1,5 +1,5 @@
 ! ye who enter here beware of dragons
-program asap_md
+program ictp_md
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! low level modules
@@ -45,4 +45,4 @@ program asap_md
   ! finish off
   call mp_finish
   
-end program asap_md
+end program ictp_md

@@ -1,7 +1,8 @@
 # -*- makefile -*-
 ##########################################
 VPATH=../src
-EXE=asap-md.x
+EXE=ictp-md.x
+DOC=../ictp-md-manual.pdf
 # sources w/o preprocessing
 SRC=main.f90 io.f90 kinds.f90 constants.f90 memory.f90 threading.f90 \
 	read_input.f90 sysinfo.f90
@@ -16,9 +17,10 @@ default: depend version compile
 compile: $(EXE)
 
 clean:
-	-rm -f $(OBJ) $(EXE) *.mod .depend version.*
+	-rm -rf latex
+	-rm -f $(OBJ) $(EXE) $(DOC) *.mod .depend version.* *.log
 
-.PHONY: clean compile default depend version
+.PHONY: clean compile default depend version doc
 ##########################################
 # generate version header
 version.f90: $(SRC) $(PPS) ../config/mkversion.sh ../config/Common.mk
@@ -29,6 +31,17 @@ version:
 	@-grep commit version.f90 > .ver2 2> /dev/null
 	@cmp -s .ver1 .ver2 || rm -f version.f90
 	@-rm  .ver1 .ver2
+
+##########################################
+# generate version header
+doc: $(DOC) 
+$(DOC): ../config/Doxyfile $(SRC) $(PPS)
+	doxygen ../config/Doxyfile || rm -f $@
+	make -C latex || rm -f $@
+	cp -p latex/refman.pdf $@ || rm -f $@
+	@echo '#####################################'
+	@echo 'Doxygen errors and warnings:'
+	@cat doxygen.log
 
 ##########################################
 # pattern rules
