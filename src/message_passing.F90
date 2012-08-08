@@ -1,4 +1,10 @@
-! message passing support
+!> Wrapper module to provide message passing support.
+!!
+!! Rather than using calls directly to the message passing
+!! library, we provide an abstract interface with adaptations
+!! to specific data types of the application. This should also
+!! make transparent to the rest of the application whether 
+!! message passing support is compiled in or not.
 module message_passing
 
   use kinds
@@ -6,13 +12,10 @@ module message_passing
   implicit none
 
   private
-  type mp_info_type
-     integer :: nprocs ! number of message passing processes
-     integer :: myrank ! my rank on communicator
-     integer :: ioproc ! rank that does i/o
-     integer :: comm   ! communicator
-  end type mp_info_type
-  type (mp_info_type) :: mp_info
+  integer :: comm   !< Communicator used for message passing
+  integer :: nprocs !< Number of message passing processes on communicator
+  integer :: myrank !< Rank of this message passing process on communicator
+  integer :: ioproc !< Rank of the message process that does i/o
 
   public :: mp_init, mp_header, mp_finish
   public :: mp_error, mp_bcast
@@ -28,15 +31,15 @@ module message_passing
 
 contains
 
-  ! returns true if this is an io task
+  !> Returns true if this is an io task
   function mp_ioproc()
     implicit none
     logical mp_ioproc
 
-    mp_ioproc = (mp_info%myrank == mp_info%ioproc)
+    mp_ioproc = (myrank == ioproc)
   end function mp_ioproc
 
-  ! set up message passing environment
+  !> Initialize message passing environment
   subroutine mp_init
     implicit none
 
@@ -46,33 +49,34 @@ contains
 #endif
 
     ! set defaults for non-mpi runs
-    mp_info%nprocs = 1
-    mp_info%myrank = 0
-    mp_info%ioproc = 0
-    mp_info%comm   = 0
+    nprocs = 1
+    myrank = 0
+    ioproc = 0
+    comm   = 0
 
 #if defined(_USE_MPI)
-    mp_info%comm=MPI_COMM_WORLD
+    comm=MPI_COMM_WORLD
     call mpi_init(ierr)
-    call mpi_comm_size(mp_info%comm,mp_info%nprocs,ierr)
-    call mpi_comm_rank(mp_info%comm,mp_info%myrank,ierr)
+    call mpi_comm_size(comm,nprocs,ierr)
+    call mpi_comm_rank(comm,myrank,ierr)
 #endif
     call adjust_mem(4*sp)
   end subroutine mp_init
 
-  ! print message passing header
-  subroutine mp_header
-    use io, only : stdout,separator
+  !> Print message passing info banner
+  subroutine mp_header(channel)
+    use io, only : separator
     implicit none
-
+    integer, intent(in) :: channel
+    
     if (mp_ioproc()) then
-       write(stdout,*) 'Number of message passing processes :    ', &
-            mp_info%nprocs
-       write(stdout,*) separator
+       write(channel,*) 'Number of message passing processes :    ', &
+            nprocs
+       write(channel,*) separator
     end if
   end subroutine mp_header
 
-  ! close message passing environment
+  !> Shut down message passing environment
   subroutine mp_finish
     implicit none
     integer :: ierr
@@ -81,7 +85,7 @@ contains
 #endif
   end subroutine mp_finish
 
-  ! abort with error message
+  !> Abort program with error message
   subroutine mp_error(msg)
     use io, only : stderr
     implicit none
@@ -90,7 +94,7 @@ contains
 
     write(stderr,'(A)') trim(msg)
 #if defined(_USE_MPI)
-    call mpi_abort(mp_info%comm,10,ierr)
+    call mpi_abort(comm,10,ierr)
 #else
     stop 'Fatal error'
 #endif
@@ -103,7 +107,7 @@ contains
     integer :: ierr
     include 'mpif.h'
 
-    call mpi_bcast(val,1,MPI_INTEGER,mp_info%ioproc,mp_info%comm,ierr)
+    call mpi_bcast(val,1,MPI_INTEGER,ioproc,comm,ierr)
 #endif
   end subroutine bcast_int
 
@@ -114,7 +118,7 @@ contains
     integer :: ierr
     include 'mpif.h'
 
-    call mpi_bcast(val,1,MPI_DOUBLE_PRECISION,mp_info%ioproc,mp_info%comm,ierr)
+    call mpi_bcast(val,1,MPI_DOUBLE_PRECISION,ioproc,comm,ierr)
 #endif
   end subroutine bcast_dp
 
@@ -126,11 +130,11 @@ contains
     include 'mpif.h'
 
     call mpi_bcast(val%x,val%size,MPI_DOUBLE_PRECISION,&
-         mp_info%ioproc,mp_info%comm,ierr)
+         ioproc,comm,ierr)
     call mpi_bcast(val%y,val%size,MPI_DOUBLE_PRECISION,&
-         mp_info%ioproc,mp_info%comm,ierr)
+         ioproc,comm,ierr)
     call mpi_bcast(val%z,val%size,MPI_DOUBLE_PRECISION,&
-         mp_info%ioproc,mp_info%comm,ierr)
+         ioproc,comm,ierr)
 #endif
   end subroutine bcast_xyz_vec
 
@@ -142,7 +146,7 @@ contains
     include 'mpif.h'
 
     call mpi_bcast(val%v,val%size,MPI_DOUBLE_PRECISION,&
-         mp_info%ioproc,mp_info%comm,ierr)
+         ioproc,comm,ierr)
 #endif
   end subroutine bcast_dp_vec
 
@@ -154,7 +158,7 @@ contains
     include 'mpif.h'
 
     call mpi_bcast(val%v,val%size,MPI_DOUBLE_PRECISION,&
-         mp_info%ioproc,mp_info%comm,ierr)
+         ioproc,comm,ierr)
 #endif
   end subroutine bcast_int_vec
 

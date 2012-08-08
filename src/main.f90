@@ -23,9 +23,9 @@ program ictp_md
   call input_init
 
   ! print banner 
-  call version
-  call mp_header
-  call thr_header
+  call version(stdout)
+  call mp_header(stdout)
+  call thr_header(stdout)
 
   call memory_print(stdout)
 

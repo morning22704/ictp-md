@@ -56,7 +56,7 @@ contains
   ! read sysinfo parameters
   subroutine sysinfo_read(channel)
     integer, intent(in) :: channel
-    integer :: nthr, i, ierr
+    integer :: nthr, ierr
 
     ! input is only read by io task
     if (mp_ioproc()) then
