@@ -5,29 +5,32 @@ date=`date -R`
 host=`hostname -s`
 flags="$@"
 cat <<EOF
+!> Module to provide program version info.
 module header
 
 contains
 
-subroutine version
-  use io, only: stdout
+!> Print a program version banner
+!! @param channel I/O unit to print banner to.
+subroutine version(channel)
   use message_passing, only: mp_ioproc
   implicit none
+  integer, intent(in) :: channel
 
   if (mp_ioproc()) then
-     write (stdout,*) '=================='
-     write (stdout,*) ' ICTP MD TEMPLATE '
-     write (stdout,*) '=================='
-     write (stdout,*) '-------------------------------------------------------'
-     write (stdout,*) 'Compile date : ${date} on ${host}'
-     write (stdout,*) 'Compile flags: ${flags}'
-     write (stdout,*) '-------------------------------------------------------'
+     write (channel,*) '=================='
+     write (channel,*) ' ICTP MD TEMPLATE '
+     write (channel,*) '=================='
+     write (channel,*) '-------------------------------------------------------'
+     write (channel,*) 'Compile date : ${date} on ${host}'
+     write (channel,*) 'Compile flags: ${flags}'
+     write (channel,*) '-------------------------------------------------------'
 EOF
-git log -n 1 --pretty="     write (stdout,*) 'Last commit  : %H'"
-git log -n 1 --pretty="     write (stdout,*) 'Commit date  : %aD'" 
-git log -n 1 --pretty="     write (stdout,*) 'Commit author: %an <%ae>'" 
+git log -n 1 --pretty="     write (channel,*) 'Last commit  : %H'"
+git log -n 1 --pretty="     write (channel,*) 'Commit date  : %aD'" 
+git log -n 1 --pretty="     write (channel,*) 'Commit author: %an <%ae>'" 
 cat <<EOF
-     write (stdout,*) '-------------------------------------------------------'
+     write (channel,*) '-------------------------------------------------------'
   end if
 end subroutine version
 end module header

@@ -27,7 +27,7 @@ version.f90: $(SRC) $(PPS) ../config/mkversion.sh ../config/Common.mk
 	@../config/mkversion.sh FC="$(FC)" FCFLAGS="$(FCFLAGS)"
 
 version:
-	@-git log -n 1 --pretty="     write (stdout,*) 'Last commit  : %H'" > .ver1
+	@-git log -n 1 --pretty="     write (channel,*) 'Last commit  : %H'" > .ver1
 	@-grep commit version.f90 > .ver2 2> /dev/null
 	@cmp -s .ver1 .ver2 || rm -f version.f90
 	@-rm  .ver1 .ver2
