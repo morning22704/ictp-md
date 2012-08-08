@@ -48,10 +48,10 @@ $(DOC): ../config/Doxyfile $(SRC) $(PPS)
 .SUFFIXES:
 .SUFFIXES: .o .f90 .F90
 
-%.o: %.F90
+.F90.o:
 	$(FC) $(FPPFLAGS) -c $(FCFLAGS) $<
 
-%.o: %.f90
+.f90.o:
 	$(FC)  -c $(FCFLAGS) $<
 
 $(EXE): version.o $(OBJ)
