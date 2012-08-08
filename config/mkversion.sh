@@ -15,9 +15,9 @@ subroutine version
   implicit none
 
   if (mp_ioproc()) then
-     write (stdout,*) '================'
-     write (stdout,*) ' ASAP MD REBOOT '
-     write (stdout,*) '================'
+     write (stdout,*) '=================='
+     write (stdout,*) ' ICTP MD TEMPLATE '
+     write (stdout,*) '=================='
      write (stdout,*) '-------------------------------------------------------'
      write (stdout,*) 'Compile date : ${date} on ${host}'
      write (stdout,*) 'Compile flags: ${flags}'
