@@ -1,0 +1,48 @@
+
+Installation Instructions
+
+1) Prerequisites
+
+a) required
+- A reasonably standard compliant Fortran 95 compiler. 
+- GNU Make
+- perl 5.x
+- a Unix-like environment (bourne shell, rm command)
+
+b) optional
+- Doxygen 1.8.x (for re-generating the manual)
+- Fortran 2003 or 2008 compliant compiler (use -D_F2003)
+- MPI-1 library (OpenMPI is recommended)
+
+2) Compilation
+a) Out-of-source compilation
+  The build system is set up to allow compiling the code
+  in a directory different from where the sources are. 
+  This has the benefit that multiple variants (different
+  compiler flags settings, debuggind enabled/disabled,
+  MPI enabled/disabled, or OpenMP enabled/disabled) can
+  be compiled from the same sources at the same time. 
+  
+  - create a directory at the top level called
+   build-<my-config> (where <my-config> can be 
+   any text and change into this directory
+  - create a copy or symbolic link from one of
+   the configuration templates in the config directory
+   under the name Makefile
+  - adjust the compiler settings as needed
+  - compile with: make
+   this should automatically create dependencies,
+   the version header file and then the executable.
+
+  you can repeat the process for multiple configurations
+  and use the mkall.sh script to recompile all of them
+  from scratch in one go.
+
+b) In-source compilation
+  Skip the first step from above and symlink or copy
+  the Makefile into the source directory. 
+
+TODO: 
+  - document testing
+  - document manual generation
+
