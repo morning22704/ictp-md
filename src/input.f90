@@ -26,15 +26,16 @@ contains
   !> Read input and restart information from all submodules
   !! @param channel I/O channel for input
   subroutine input_read(channel)
+    use message_passing, only : mp_ioproc
     integer, intent(in) :: channel
 
     if (need_init) call input_init
     call control_read(channel)
     call control_print(stdout)
-    call memory_print(stdout)
+    if (mp_ioproc()) call memory_print(stdout)
     call sysinfo_read(channel)
     !call sysinfo_print(stdout)
-    call memory_print(stdout)
+    if (mp_ioproc()) call memory_print(stdout)
   end subroutine input_read
 
 end module input
