@@ -2,6 +2,7 @@
 module memory
   use kinds
   use constants
+  use io, only : separator
   implicit none
 
   private
@@ -47,6 +48,7 @@ contains
     integer, intent(in) :: channel
 
     write(channel,*) 'Total allocated memory in bytes: ', total_mem
+    write(channel,*) separator
   end subroutine memory_print
 
   ! allocate memory for vector types

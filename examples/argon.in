@@ -1,5 +1,13 @@
 ! minimal test input
 
+&control
+ initial_step=200
+ current_step=400
+ last_step=2000
+ run_step=200
+ max_time=30000.0
+/
+
 &sysinfo
   natoms=109
   ntypes=1
