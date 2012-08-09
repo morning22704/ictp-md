@@ -3,6 +3,10 @@
 exec > new.version.f90
 date=`date -R`
 host=`hostname -s`
+name="$1"
+shift
+version="$1"
+shift
 flags="$@"
 cat <<EOF
 !> Module to provide program version info.
@@ -26,7 +30,7 @@ subroutine version(channel)
 
   if (mp_ioproc()) then
      write (channel,*) '=================='
-     write (channel,*) ' ICTP MD TEMPLATE '
+     write (channel,*) ' ${name} v${version} '
      write (channel,*) '=================='
      write (channel,*) '-------------------------------------------------------'
      write (channel,*) 'Compile date : ${date} on ${host}'

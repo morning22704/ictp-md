@@ -1,8 +1,10 @@
 # -*- makefile -*-
 ##########################################
 VPATH=../src
-EXE=ictp-md.x
-DOC=../ictp-md-manual.pdf
+NAME=ictp-md
+VERSION=08-2012
+EXE=$(NAME).x
+DOC=../$(NAME)-manual.pdf
 # sources w/o preprocessing
 SRC=main.f90 io.f90 kinds.f90 constants.f90 memory.f90 threading.f90 \
 	read_input.f90 sysinfo.f90
@@ -13,11 +15,12 @@ OBJ=$(PPS:.F90=.o) $(SRC:.f90=.o)
 FCFLAGS=$(OPTFLAGS) $(ARCHFLAGS)
 ##########################################
 ##########################################
-default: depend compile
+default: version depend compile
+all: compile doc
 compile: $(EXE)
 
 clean:
-	-rm -rf latex
+	-rm -rf latex Doxyfile
 	-rm -f $(OBJ) $(EXE) $(DOC) version.o
 	-rm -f *.mod .depend .ver1 .ver2 version.f90 *.log
 
@@ -25,7 +28,8 @@ clean:
 ##########################################
 # generate version header
 version.f90: .ver1 $(SRC) $(PPS) ../config/mkversion.sh ../config/Common.mk
-	@../config/mkversion.sh FC="$(FC)" FCFLAGS="$(FCFLAGS)"
+	@../config/mkversion.sh $(NAME) $(VERSION) \
+		FC="$(FC)" FCFLAGS="$(FCFLAGS)"
 
 .ver1:
 	@git log -n 1 --pretty=oneline > .ver1
@@ -36,9 +40,13 @@ version:
 
 ##########################################
 # generate version header
-doc: $(DOC) 
-$(DOC): ../config/Doxyfile $(SRC) $(PPS)
-	doxygen ../config/Doxyfile || rm -f $@
+doc: $(DOC)
+
+Doxyfile: ../config/Doxyfile.in ../config/Common.mk
+	sed -e s,@VERSION@,$(VERSION),g -e s,@NAME@,$(NAME),g $< > $@
+
+$(DOC): Doxyfile $(SRC) $(PPS)
+	doxygen Doxyfile || rm -f $@
 	make -C latex || rm -f $@
 	cp -p latex/refman.pdf $@ || rm -f $@
 	@echo '#####################################'
