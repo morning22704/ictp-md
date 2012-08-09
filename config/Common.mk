@@ -23,14 +23,15 @@ clean:
 .PHONY: clean compile default depend version doc
 ##########################################
 # generate version header
-version.f90: $(SRC) $(PPS) ../config/mkversion.sh ../config/Common.mk
+version.f90: $(SRC) $(PPS) ../config/mkversion.sh ../config/Common.mk .ver1
 	@../config/mkversion.sh FC="$(FC)" FCFLAGS="$(FCFLAGS)"
 
+.ver1:
+	@git log -n 1 --pretty=oneline > .ver1
+
 version:
-	@-git log -n 1 --pretty="     write (channel,*) 'Last commit  : %H'" > .ver1
-	@-grep commit version.f90 > .ver2 2> /dev/null
-	@cmp -s .ver1 .ver2 || rm -f version.f90
-	@-rm  .ver1 .ver2
+	@git log -n 1 --pretty=oneline > .ver2
+	@cmp -s .ver1 .ver2 || cp .ver2 .ver1
 
 ##########################################
 # generate version header
