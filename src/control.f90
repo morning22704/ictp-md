@@ -9,16 +9,18 @@ module control_io
 
   private
   integer :: initial_step   !< Number of the first MD step of the trajectory
-  integer :: current_step   !< Number of the current MD step
   integer :: last_step      !< Number of the last MD step of the trajectory
+  integer :: current_step   !< Number of the current MD step
   integer :: run_step       !< Number of MD steps in this run
   integer :: end_step       !< Scheduled last step of this run
-  real(kind=dp) :: max_time !< Maximal wall time of this run
-  logical :: restart        !< Flag to indicate a restarted run
-  character(len=255) :: restfile !< Path to restart file
+  integer :: seq_no         !< Sequence number of run in trajectory
+  real(kind=dp) :: max_time !< Maximal wall time for this run
+  logical :: restart        !< Flag to trigger reading in a restart
+  character(len=120) :: restfile !< Path to restart file
+  character(len=120) :: prefix   !< Prefix
 
   namelist /control/ initial_step, current_step, last_step, run_step, &
-       max_time, restart, restfile
+       seq_no, max_time, restart, restfile, prefix
   
   public :: control_init, control_read, control_print
   public :: use_restart
@@ -33,10 +35,12 @@ contains
     last_step    = -1
     run_step     =  0
     end_step     = -1
+    seq_no       = -1
     max_time     = -d_one
     restart      = .false.
     restfile     = 'unknown'
-    call adjust_mem(5*sp+dp+sp+255+sp) ! global memory use of module
+    prefix       = 'mdrun'
+    call adjust_mem(6*sp+dp+sp+2*(120+sp)) ! global memory use of module
   end subroutine control_init
   
   !> Read &control namelist
@@ -51,7 +55,7 @@ contains
   subroutine control_read(channel)
     integer, intent(in) :: channel
     integer :: ierr
-    integer :: tmp_initial, tmp_current, tmp_last, tmp_run
+    integer :: tmp_initial, tmp_current, tmp_last, tmp_run, tmp_seq
     real(kind=dp) :: tmp_max
 
     ! input is only read by io task
@@ -69,6 +73,7 @@ contains
           tmp_last    = last_step
           tmp_run     = run_step
           tmp_max     = max_time
+          tmp_seq     = seq_no
 
           ! open restart channel and verify validity and version
           open(unit=resin, file=TRIM(restfile), form='formatted', &
@@ -78,12 +83,15 @@ contains
           read(unit=resin, nml=control, iostat=ierr)
           if (ierr /= 0) call mp_error('Failure reading &control restart')
 
+          ! the sequence number needs to be stepped up
+          seq_no = seq_no + 1
           ! override restart data from input as needed
           if (tmp_initial >= 0)  initial_step = tmp_initial
           if (tmp_current >= 0)  current_step = tmp_current
           if (tmp_last >= 0)     last_step    = tmp_last
           if (tmp_run > 0)       run_step     = tmp_run
           if (tmp_max >= d_zero) max_time     = tmp_max
+          if (tmp_seq >= 0)      seq_no       = tmp_seq
           restart = .true.
           if (current_step < initial_step) &
                call mp_error('current_step must be larger than initial_step')
@@ -99,6 +107,7 @@ contains
                call mp_error('last_step must be -1 or larger than current_step')
           if (last_step < end_step) end_step = last_step
        end if
+       if (seq_no < 0) seq_no = 0
     end if ! mp_ioproc()
 
     ! broadcast info that is needed on all processes
@@ -119,9 +128,11 @@ contains
     integer, intent(in) :: channel
 
     if (mp_ioproc()) then
+       write(channel,*) 'Trajectory name prefix:      ', TRIM(prefix)
        write(channel,*) 'Trajectory begins at step:   ', initial_step
        if (last_step > 0) &
             write(channel,*) 'Trajectory finishes at step: ', last_step
+       write(channel,*) 'Sequency no. in trajectory:  ', seq_no
        write(channel,*) 'Trajectory currently at step:',current_step
        write(channel,*) 'Run scheduled to end at step:',end_step
        write(channel,*) separator

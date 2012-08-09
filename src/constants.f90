@@ -15,4 +15,5 @@ module constants
   public
   real(kind=dp), parameter :: d_zero = 0.0_dp !< double precision zero
   real(kind=dp), parameter :: d_one  = 1.0_dp !< double precision one
+  integer,       parameter :: kbyte  = 1024   !< kilobyte
 end module constants

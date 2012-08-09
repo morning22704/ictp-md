@@ -4,13 +4,15 @@
 !! and calls the corresponding modules that handle the various logical
 !! groups of data I/O. 
 module input
+  use io, only: stdout
+  use memory, only: memory_print
   use control_io
   use sysinfo_io
-!  use output
   implicit none
 
   private
-  public :: input_init, input_read, input_print, input_restart
+  logical, save :: need_init = .true. !< Flag whether to run initializers 
+  public :: input_read
 
 contains
 
@@ -18,6 +20,7 @@ contains
   subroutine input_init
     call control_init
     call sysinfo_init
+    need_init = .false.
   end subroutine input_init
 
   !> Read input and restart information from all submodules
@@ -25,23 +28,13 @@ contains
   subroutine input_read(channel)
     integer, intent(in) :: channel
 
+    if (need_init) call input_init
     call control_read(channel)
+    call control_print(stdout)
+    call memory_print(stdout)
     call sysinfo_read(channel)
+    !call sysinfo_print(stdout)
+    call memory_print(stdout)
   end subroutine input_read
 
-  !> Print useful information about the current run to screen or log
-  subroutine input_print(channel)
-    integer, intent(in) :: channel
-
-    call control_print(channel)
-    call sysinfo_print(channel)
-  end subroutine input_print
-
-  !> Write out a restart
-  subroutine input_restart(channel)
-    integer, intent(in) :: channel
-
-!    call control_restart(channel)
-!    call sysinfo_restart(channel)
-  end subroutine input_restart
 end module input

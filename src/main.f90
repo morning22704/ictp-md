@@ -32,9 +32,8 @@ program ictp_md
   call memory_init
   call mp_init
   call thr_init
-  call input_init
 
-  ! print banner 
+  ! print banners 
   call version(stdout)
   call mp_header(stdout)
   call thr_header(stdout)
@@ -43,14 +42,9 @@ program ictp_md
   ! read system settings from input
   call input_read(stdin)
 
-  ! echo input settings
-  call input_print(stdout)
-  call memory_print(stdout)
-
   ! open restart channel and verify validity and version
   open(unit=resout, file='new.restart', form='formatted',&
        access='sequential', action='write', status='unknown')
-  call input_print(resout)
   close(resout)
 
   ! finish off

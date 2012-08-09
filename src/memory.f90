@@ -47,7 +47,8 @@ contains
   subroutine memory_print(channel)
     integer, intent(in) :: channel
 
-    write(channel,*) 'Total allocated memory in bytes: ', total_mem
+    write(channel,'(A,F20.3,A)') ' Assigned memory:            ', &
+         total_mem/kbyte, ' kBytes'
     write(channel,*) separator
   end subroutine memory_print
 
