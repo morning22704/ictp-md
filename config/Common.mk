@@ -13,17 +13,18 @@ OBJ=$(PPS:.F90=.o) $(SRC:.f90=.o)
 FCFLAGS=$(OPTFLAGS) $(ARCHFLAGS)
 ##########################################
 ##########################################
-default: depend compile version
+default: depend compile
 compile: $(EXE)
 
 clean:
 	-rm -rf latex
-	-rm -f $(OBJ) $(EXE) $(DOC) *.mod .depend version.* *.log
+	-rm -f $(OBJ) $(EXE) $(DOC) version.o
+	-rm -f *.mod .depend .ver1 .ver2 version.f90 *.log
 
 .PHONY: clean compile default depend version doc
 ##########################################
 # generate version header
-version.f90: $(SRC) $(PPS) ../config/mkversion.sh ../config/Common.mk .ver1
+version.f90: .ver1 $(SRC) $(PPS) ../config/mkversion.sh ../config/Common.mk
 	@../config/mkversion.sh FC="$(FC)" FCFLAGS="$(FCFLAGS)"
 
 .ver1:
@@ -60,6 +61,7 @@ $(EXE): version.o $(OBJ)
 
 ##########################################
 # dependency tracking
-.depend depend: $(PPS) $(SRC) version.f90
+depend: .depend version
+.depend: version.f90 $(PPS) $(SRC)
 	@perl -w ../config/mkdep.pl -I ../src $^
 -include .depend
