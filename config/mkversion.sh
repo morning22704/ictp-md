@@ -43,5 +43,4 @@ end subroutine version
 end module header
 EOF
 
-# check if changed and replace
-cmp -s version.f90 new.version.f90 && rm -f new.version.f90 || mv new.version.f90 version.f90
+mv new.version.f90 version.f90
