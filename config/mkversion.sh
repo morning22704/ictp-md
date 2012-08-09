@@ -24,25 +24,22 @@ contains
 !> Print a program version banner
 !! @param channel I/O unit to print banner to.
 subroutine version(channel)
-  use message_passing, only: mp_ioproc
   implicit none
   integer, intent(in) :: channel
 
-  if (mp_ioproc()) then
-     write (channel,*) '=================='
-     write (channel,*) ' ${name} v${version} '
-     write (channel,*) '=================='
-     write (channel,*) '-------------------------------------------------------'
-     write (channel,*) 'Compile date : ${date} on ${host}'
-     write (channel,*) 'Compile flags: ${flags}'
-     write (channel,*) '-------------------------------------------------------'
+  write (channel,*) '=================='
+  write (channel,*) ' ${name} v${version} '
+  write (channel,*) '=================='
+  write (channel,*) '-------------------------------------------------------'
+  write (channel,*) 'Compile date : ${date} on ${host}'
+  write (channel,*) 'Compile flags: ${flags}'
+  write (channel,*) '-------------------------------------------------------'
 EOF
 git log -n 1 --pretty="     write (channel,*) 'Last commit  : %H'"
 git log -n 1 --pretty="     write (channel,*) 'Commit date  : %aD'" 
 git log -n 1 --pretty="     write (channel,*) 'Commit author: %an <%ae>'" 
 cat <<EOF
      write (channel,*) '-------------------------------------------------------'
-  end if
 end subroutine version
 end module header
 EOF

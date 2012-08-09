@@ -45,7 +45,6 @@ contains
   !> @param channel I/O unit to write header text to
   subroutine thr_header(channel)
     use io, only : separator
-    use message_passing, only : mp_ioproc
     implicit none
     integer, intent(in) :: channel
     integer :: have_threads
@@ -53,14 +52,12 @@ contains
     have_threads = 0
 !$  have_threads = 1
 
-    if (mp_ioproc()) then
-       if (have_threads > 0) then
-          write(channel,*) 'OpenMP enabled build. Number of threads :',nthreads
-       else
-          write(channel,*) 'OpenMP not enabled in build'
-       end if
-       write (channel,*) separator
+    if (have_threads > 0) then
+       write(channel,*) 'OpenMP enabled build. Number of threads :',nthreads
+    else
+       write(channel,*) 'OpenMP not enabled in build'
     end if
+    write (channel,*) separator
   end subroutine thr_header
 
 end module threading

@@ -22,10 +22,12 @@ subroutine basic_setup
   call thr_init
 
   ! print banners 
-  call version(stdout)
-  call mp_header(stdout)
-  call thr_header(stdout)
-  if (mp_ioproc()) call memory_print(stdout)
+  if (mp_ioproc()) then
+     call version(stdout)
+     call mp_header(stdout)
+     call thr_header(stdout)
+     call memory_print(stdout)
+  end if
 end subroutine basic_setup
 
 !> ICTP MD, a simple, modular, and parallel MD engine in Fortran 95

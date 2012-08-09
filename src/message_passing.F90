@@ -69,11 +69,8 @@ contains
     implicit none
     integer, intent(in) :: channel
     
-    if (mp_ioproc()) then
-       write(channel,*) 'Number of message passing processes :    ', &
-            nprocs
-       write(channel,*) separator
-    end if
+    write(channel,*) 'Number of message passing processes :    ', nprocs
+    write(channel,*) separator
   end subroutine mp_header
 
   !> Shut down message passing environment
