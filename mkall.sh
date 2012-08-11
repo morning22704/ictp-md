@@ -12,6 +12,7 @@ for d in build-*
 do \
     make -C $d clean
     make -C $d || exit 1
+    make -C $d check || exit 1
 done
 
 # build the manual

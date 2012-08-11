@@ -11,7 +11,7 @@ $pass=0;
 $fail=0;
 
 die "Too few arguments: @ARGV\n"
-  unless ($#ARGV > 1);
+  unless ($#ARGV > 0);
 
 $dir = pop(@ARGV);
 $cmd = join(' ',@ARGV);

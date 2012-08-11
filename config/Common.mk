@@ -41,7 +41,7 @@ version:
 ##########################################
 # run unit tests
 check:
-	perl ../config/runtests.pl $(CMD) $(EXE) ../tests 
+	perl ../config/runtests.pl $(CMD) ./$(EXE) ../tests 
 
 ##########################################
 # generate documentation
