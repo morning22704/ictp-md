@@ -7,6 +7,7 @@ FPPFLAGS=-D_USE_MPI
 OPTFLAGS= -O2 -Wall -std=f95 -g
 ARCHFLAGS=-march=core2 -msse3 -mpc64
 LINKFLAGS=
+CMD=mpirun -np 2
 ##########################################
 include ../config/Common.mk
 ##########################################

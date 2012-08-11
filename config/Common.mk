@@ -16,7 +16,7 @@ FCFLAGS=$(OPTFLAGS) $(ARCHFLAGS)
 ##########################################
 ##########################################
 default: version depend compile
-all: compile doc
+all: compile check doc
 compile: $(EXE)
 
 clean:
@@ -28,7 +28,7 @@ clean:
 ##########################################
 # generate version header
 version.f90: .ver1 $(SRC) $(PPS) ../config/mkversion.sh ../config/Common.mk
-	@../config/mkversion.sh $(NAME) $(VERSION) \
+	@sh ../config/mkversion.sh $(NAME) $(VERSION) \
 		FC="$(FC)" FCFLAGS="$(FCFLAGS)"
 
 .ver1:
@@ -39,7 +39,12 @@ version:
 	@cmp -s .ver1 .ver2 || cp .ver2 .ver1
 
 ##########################################
-# generate version header
+# run unit tests
+check:
+	perl ../config/runtests.pl $(CMD) $(EXE) ../tests 
+
+##########################################
+# generate documentation
 doc: $(DOC)
 
 Doxyfile: ../config/Doxyfile.in ../config/Common.mk

@@ -7,6 +7,7 @@ FPPFLAGS=
 OPTFLAGS= -O2 -warn all
 ARCHFLAGS=-msse3 -pc64 -openmp -std95 -g
 LINKFLAGS=-static-intel
+CMD=env OMP_NUM_THREADS=2
 ##########################################
 include ../config/Common.mk
 ##########################################

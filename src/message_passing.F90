@@ -84,12 +84,12 @@ contains
 
   !> Abort program with error message
   subroutine mp_error(msg)
-    use io, only : stderr
+    use io, only : stdout
     implicit none
     character(len=*),intent(in) :: msg
     integer :: ierr
 
-    write(stderr,'(A)') trim(msg)
+    write(stdout,'(A)') trim(msg)
 #if defined(_USE_MPI)
     call mpi_abort(comm,10,ierr)
 #else

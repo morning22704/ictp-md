@@ -1,0 +1,6 @@
+# test program behavior that is independent of a simulation
+general
+  	  
+# test proper handling of the control namelist and module
+control
+

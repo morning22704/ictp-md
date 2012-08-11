@@ -1,0 +1,5 @@
+! wrong first namelist
+&sysinfo
+/
+&control
+/
