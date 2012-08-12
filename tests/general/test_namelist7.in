@@ -1,0 +1,4 @@
+! unknown namelist variable
+&control
+  xxyyzz=1
+/

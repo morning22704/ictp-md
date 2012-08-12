@@ -1,0 +1,4 @@
+! keyword without assignment
+&control
+ run_steps
+/

@@ -1,0 +1,13 @@
+ictp-md
+Compile date
+Compile flags
+Last commit
+Commit date
+Commit author
+Number of message passing processes
+OpenMP
+Assigned memory.*kBytes
+# FIXME: GNU fortran ignores unknown namelist entries;
+# intel ifort 11.x throws an error.
+Failure reading &(control|sysinfo) namelist
+END-OF-RUN

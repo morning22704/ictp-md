@@ -1,0 +1,3 @@
+! repeating the same namelist twice
+&control   /
+&control   /
