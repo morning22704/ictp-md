@@ -1,0 +1,4 @@
+! floating point
+&control
+  max_time=1.0d+4
+/

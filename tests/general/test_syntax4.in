@@ -1,0 +1,4 @@
+! assign string to integer
+&control
+  run_step=string
+/

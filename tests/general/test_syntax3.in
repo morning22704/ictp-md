@@ -1,0 +1,4 @@
+! assign floating point number to integer
+&control
+  run_step=2.5
+/

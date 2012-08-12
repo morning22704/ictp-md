@@ -1,4 +1,4 @@
 some non-comment text
-with a valid namelist
+outside a namelist
 &control
 /

@@ -1,0 +1,4 @@
+! string assignment w/o quotes
+&control
+  prefix=string
+/

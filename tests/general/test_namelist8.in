@@ -1,4 +1,3 @@
-! keyword without assignment
+! comment after namelist
 &control
- run_steps
-/
+/ ! is closed

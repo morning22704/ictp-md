@@ -1,0 +1,4 @@
+! valid variable name without assignment
+&control
+  run_steps
+/

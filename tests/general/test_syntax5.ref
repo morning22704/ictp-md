@@ -1,0 +1,13 @@
+ictp-md
+Compile date
+Compile flags
+Last commit
+Commit date
+Commit author
+Number of message passing processes
+OpenMP
+Assigned memory.*kBytes
+# FIXME: GNU fortran does not allows strings w/o quotes
+# intel ifort 11.x allows and will write by default w/o quotes
+Failure reading &(control|sysinfo) namelist
+END-OF-RUN

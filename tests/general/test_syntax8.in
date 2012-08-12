@@ -1,0 +1,4 @@
+! integer assigment to floating point
+&control
+  max_time=1000
+/

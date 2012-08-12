@@ -1,4 +1,3 @@
-! unknown namelist variable
 &control
-  xxyyzz=1
+  ! comment inside namelist
 /

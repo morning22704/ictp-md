@@ -8,5 +8,4 @@ Number of message passing processes
 OpenMP
 Assigned memory.*kBytes
 Failure reading &control namelist
-Error code
 END-OF-RUN

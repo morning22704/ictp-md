@@ -13,3 +13,16 @@ namelist6
 namelist7
 namelist8
 namelist9
+
+# syntax tests on &control namelist
+syntax1
+syntax2
+syntax3
+syntax4
+syntax5
+syntax6
+syntax7
+syntax8
+syntax9
+syntax10
+syntax11

@@ -7,5 +7,5 @@ Commit author
 Number of message passing processes
 OpenMP
 Assigned memory.*kBytes
-Failure reading &control namelist
+Failure reading &sysinfo namelist
 END-OF-RUN
