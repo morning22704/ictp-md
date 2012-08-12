@@ -106,11 +106,11 @@ while (<SECTS>) {
 }
 close SECTS;
 
-print STDOUT "--------------------------------\n";
-print STDOUT "Total tests run: ", $fail+$pass, "\n";
-print STDOUT "Tests passed:    ", $pass, "\n";
-print STDOUT "Tests failed:    ", $fail, "\n";
-print STDOUT "--------------------------------\n";
+print STDOUT "---------------------------------------------\n";
+print STDOUT "Total tests run: ", $fail+$pass;
+print STDOUT " | passed: ", $pass;
+print STDOUT " | failed: ", $fail, "\n";
+print STDOUT "---------------------------------------------\n";
 
 exit 1 if ($fail > 0);
 exit 0;

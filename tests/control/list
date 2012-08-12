@@ -1,2 +1,5 @@
-000
-#001
+# empty input just checks if the section is read
+empty
+# validate default settings
+defaults
+
