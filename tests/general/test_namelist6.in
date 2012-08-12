@@ -1,0 +1,3 @@
+! one line namelist
+ &control   /
+! with trailing comment

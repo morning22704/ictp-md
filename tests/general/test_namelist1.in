@@ -1,0 +1,3 @@
+! wrong namelist, first has to be &control
+&sysinfo
+/

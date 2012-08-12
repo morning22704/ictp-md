@@ -1,4 +1,12 @@
-000
-001
-002
-003
+# empty inputs without any namelists
+empty1
+empty2
+empty3
+
+# tests with contentless namelist variants
+namelist1
+namelist2
+namelist3
+namelist4
+namelist5
+namelist6

@@ -1,0 +1,5 @@
+! namelist not starting in the first column
+
+    &control
+    /
+

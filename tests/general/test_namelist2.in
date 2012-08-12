@@ -1,0 +1,5 @@
+! wrong order of namelists. first is control.
+&sysinfo
+/
+&control
+/
