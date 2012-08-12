@@ -1,0 +1,4 @@
+! negative initial step will be reset to 0
+&control
+ initial_step=-20
+/

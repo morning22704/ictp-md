@@ -1,0 +1,4 @@
+! postitive initial step will also raise other defaults
+&control
+ initial_step=200
+/

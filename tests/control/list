@@ -1,5 +1,19 @@
 # empty input just checks if the section is read
 empty
+
 # validate default settings
 defaults
 
+# check initial_step behavior
+initial1
+initial2
+initial3
+initial4
+initial5
+
+# check seq_no behavior
+seq_no1
+seq_no2
+seq_no3
+seq_no4
+seq_no5
