@@ -132,7 +132,7 @@ contains
        write(channel,*) 'Trajectory begins at step:   ', initial_step
        if (last_step > 0) &
             write(channel,*) 'Trajectory finishes at step: ', last_step
-       write(channel,*) 'Sequency no. in trajectory:  ', seq_no
+       write(channel,*) 'Sequence no. in trajectory:  ', seq_no
        write(channel,*) 'Trajectory currently at step:',current_step
        write(channel,*) 'Run scheduled to end at step:',end_step
        write(channel,*) separator
