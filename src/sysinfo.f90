@@ -1,3 +1,8 @@
+!
+! FIXME: add documentation section here that documents the 
+! entire &sysinfo section, but shows up in the user's guide 
+! parts, not the developer's reference
+
 !> Module to manage data of the current system
 module sysinfo_io
   use kinds
@@ -52,6 +57,7 @@ contains
   
   ! read sysinfo parameters
   subroutine sysinfo_read(channel)
+    use io, only: stdout
     use memory, only: alloc_vec
     integer, intent(in) :: channel
     integer :: nthr, ierr
@@ -59,7 +65,7 @@ contains
     ! input is only read by io task
     if (mp_ioproc()) then
 
-       write(stdout,*) 'Reading &control namelist from input'
+       write(stdout,*) 'Reading &sysinfo namelist from input'
        read(channel,nml=sysinfo,iostat=ierr)
        if (ierr /= 0) call mp_error('Failure reading &sysinfo namelist',ierr)
 
@@ -84,6 +90,9 @@ contains
     call alloc_vec(for,nthr*natoms)
     call alloc_vec(typ,natoms)
     call alloc_vec(chg,natoms)
+
+!    call topology_read(channel,natoms,ntypes,typ,chg)
+
 
     chg%v(:) = d_zero
     vel%x(:) = d_zero

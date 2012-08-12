@@ -15,12 +15,14 @@ module memory
      module procedure alloc_xyz_vec
      module procedure alloc_dp_vec
      module procedure alloc_int_vec
+     module procedure alloc_label_vec
   end interface
 
   interface free_vec
      module procedure free_xyz_vec
      module procedure free_dp_vec
      module procedure free_int_vec
+     module procedure free_label_vec
   end interface
 contains
 
@@ -80,6 +82,15 @@ contains
     call adjust_mem(num*sp)
   end subroutine alloc_int_vec
 
+  subroutine alloc_label_vec(vec,num)
+    type(label_vec), intent(inout) :: vec
+    integer, intent(in) :: num
+
+    allocate(vec%v(num))
+    vec%size = num
+    call adjust_mem(num*16)
+  end subroutine alloc_label_vec
+
   ! free memory for vector types
   subroutine free_xyz_vec(vec)
     type(xyz_vec), intent(inout) :: vec
@@ -104,5 +115,13 @@ contains
     call adjust_mem(-vec%size*sp)
     vec%size = 0
   end subroutine free_int_vec
+
+  subroutine free_label_vec(vec)
+    type(label_vec), intent(inout) :: vec
+
+    deallocate(vec%v)
+    call adjust_mem(-vec%size*16-sp)
+    vec%size = 0
+  end subroutine free_label_vec
 
 end module memory

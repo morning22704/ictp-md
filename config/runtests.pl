@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 # simple custom regression test wrangler
+# FIXME: add some inline docs here
 # (c) 2012 Axel Kohlmeyer <akohlmey@gmail.com>
 use strict;
 

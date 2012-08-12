@@ -26,4 +26,10 @@ module kinds
      integer :: size                !< length of data vector
   end type int_vec
 
+  !> Derived data type hold a 16 char string vector with associated size
+  type label_vec
+     character(len=16), pointer :: v(:)       !< data vector
+     integer :: size                !< length of data vector
+  end type label_vec
+
 end module kinds
