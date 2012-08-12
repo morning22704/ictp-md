@@ -58,14 +58,14 @@ contains
     if (mp_ioproc()) then
 
        read(channel,nml=sysinfo,iostat=ierr)
-       if (ierr /= 0) call mp_error('Failure reading &sysinfo namelist')
+       if (ierr /= 0) call mp_error('Failure reading &sysinfo namelist',ierr)
 
        ! some consistency checks
        if (natoms <= 0) then
-          call mp_error('natoms must be > 0')
+          call mp_error('natoms must be > 0',natoms)
        endif
        if (ntypes <= 0) then
-          call mp_error('ntypes must be > 0')
+          call mp_error('ntypes must be > 0',ntypes)
        endif
     end if
 
@@ -100,7 +100,7 @@ contains
 
     if (mp_ioproc()) then
        write(unit=channel,nml=sysinfo,iostat=ierr)
-       if (ierr /= 0) call mp_error('failed to write &sysinfo namelist')
+       if (ierr /= 0) call mp_error('failed to write &sysinfo namelist',ierr)
     endif
     
   end subroutine sysinfo_print

@@ -62,7 +62,7 @@ contains
     if (mp_ioproc()) then
 
        read(unit=channel,nml=control,iostat=ierr)
-       if (ierr /= 0) call mp_error('Failure reading &control namelist')
+       if (ierr /= 0) call mp_error('Failure reading &control namelist',ierr)
 
        ! for the control namelist, the restart overrides the input
        if (restart) then
@@ -78,10 +78,10 @@ contains
           ! open restart channel and verify validity and version
           open(unit=resin, file=TRIM(restfile), form='formatted', &
                access='sequential', action='read', status='old', iostat=ierr)
-          if (ierr /= 0) call mp_error('Failure opening restart file')
+          if (ierr /= 0) call mp_error('Failure opening restart file',ierr)
 
           read(unit=resin, nml=control, iostat=ierr)
-          if (ierr /= 0) call mp_error('Failure reading &control restart')
+          if (ierr /= 0) call mp_error('Failure reading &control restart',ierr)
 
           ! the sequence number needs to be stepped up
           seq_no = seq_no + 1
@@ -94,7 +94,7 @@ contains
           if (tmp_seq >= 0)      seq_no       = tmp_seq
           restart = .true.
           if (current_step < initial_step) &
-               call mp_error('current_step must be larger than initial_step')
+               call mp_error('current_step must be larger than initial_step',1)
        endif
 
        ! set defaults for unset parameters and sanitize choices
@@ -104,7 +104,7 @@ contains
        end_step = current_step + run_step
        if (last_step > 0) then
           if (last_step < current_step) &
-               call mp_error('last_step must be -1 or larger than current_step')
+               call mp_error('last_step must be -1 or larger than current_step',1)
           if (last_step < end_step) end_step = last_step
        end if
        if (seq_no < 0) seq_no = 0

@@ -83,15 +83,17 @@ contains
   end subroutine mp_finish
 
   !> Abort program with error message
-  subroutine mp_error(msg)
+  subroutine mp_error(msg,code)
     use io, only : stdout
     implicit none
     character(len=*),intent(in) :: msg
+    integer, intent(in) :: code
     integer :: ierr
 
     write(stdout,'(A)') trim(msg)
+    write(stdout,'(A,I3)') 'Error code: ',code
 #if defined(_USE_MPI)
-    call mpi_abort(comm,10,ierr)
+    call mpi_abort(comm,code,ierr)
 #else
     stop 'Fatal error'
 #endif
