@@ -100,6 +100,7 @@ contains
        ! set defaults for unset parameters and sanitize choices
        if (initial_step < 0) initial_step = 0
        if (current_step < 0) current_step = 0
+       if (run_step < 0) run_step = 0
        if (current_step < initial_step) current_step = initial_step
        end_step = current_step + run_step
        if (last_step > 0) then
