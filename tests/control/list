@@ -17,3 +17,10 @@ seq_no2
 seq_no3
 seq_no4
 seq_no5
+
+# check run_step behavior
+run_step1
+run_step2
+run_step3
+run_step4
+run_step5
