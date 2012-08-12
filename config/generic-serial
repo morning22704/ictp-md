@@ -1,0 +1,23 @@
+# Generic configuration file
+SHELL=/bin/sh
+##########################################
+# configuration section:
+# Fortran 95 compiler, use mpif77/mpif90/mpif95
+# when compiling with MPI support
+FC=f95
+# Preprocessor flags. Available options:
+# -D_USE_MPI  compile in MPI support
+FPPFLAGS=
+# Compiler flags for optimization and debugging
+OPTFLAGS= -g
+# Architecture selection flags.
+# Add flag to enable OpenMP here.
+ARCHFLAGS=
+# Linker flags. Add flags only needed at link time.
+LINKFLAGS=
+# Command to run the resulting executable.
+# Needed for MPI. Empty for serial compilation.
+CMD=
+##########################################
+include ../config/Common.mk
+##########################################
