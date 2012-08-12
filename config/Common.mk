@@ -40,7 +40,7 @@ version:
 
 ##########################################
 # run unit tests
-check:
+check: $(EXE)
 	perl ../config/runtests.pl $(CMD) ./$(EXE) ../tests 
 
 ##########################################
