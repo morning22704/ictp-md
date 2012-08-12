@@ -13,13 +13,15 @@ establish a modular and  maintainable programming style of an extensible
 package.  GNU gfortran version 4.5.1  and Intel ifort version 11.1  were
 tested successfully.
 
-- GNU make. Makefiles were only tested with GNU make and employ features
- like VPATH that are not portable to all make programs
+- GNU make.
+ Makefiles were only tested with GNU make and employ features like VPATH
+ that are not portable to all make programs
 
-- perl 5.x. A script written in perl is used to automatically generate
- dependencies between object files.
+- perl 5.x.
+ A script written in perl is used to automatically generate dependencies
+ between object files. Also the regression test tool uses perl.
 
-- A Unix-like environment (bourne shell, rm command)
+- A Unix-like environment (bourne shell, rm/mv/cp commands)
 
 b) desirable
 
