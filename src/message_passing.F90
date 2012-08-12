@@ -90,8 +90,8 @@ contains
     integer, intent(in) :: code
     integer :: ierr
 
-    write(stdout,'(A)') trim(msg)
-    write(stdout,'(A,I3)') 'Error code: ',code
+    write(stdout,*) trim(msg)
+    write(stdout,'(A,I3)') ' Error code: ',code
 #if defined(_USE_MPI)
     call mpi_abort(comm,code,ierr)
 #else

@@ -2,7 +2,6 @@
 module sysinfo_io
   use kinds
   use constants
-  use memory, only: adjust_mem, alloc_vec
   use message_passing, only: mp_ioproc, mp_bcast, mp_error
   use threading, only: thr_get_num_threads
   use control_io, only: use_restart
@@ -26,6 +25,8 @@ contains
 
   ! set default values
   subroutine sysinfo_init
+    use memory, only: adjust_mem
+
     natoms     = -1
     ntypes     = -1
     nbonds     = -1
@@ -51,12 +52,14 @@ contains
   
   ! read sysinfo parameters
   subroutine sysinfo_read(channel)
+    use memory, only: alloc_vec
     integer, intent(in) :: channel
     integer :: nthr, ierr
 
     ! input is only read by io task
     if (mp_ioproc()) then
 
+       write(stdout,*) 'Reading &control namelist from input'
        read(channel,nml=sysinfo,iostat=ierr)
        if (ierr /= 0) call mp_error('Failure reading &sysinfo namelist',ierr)
 
@@ -67,7 +70,7 @@ contains
        if (ntypes <= 0) then
           call mp_error('ntypes must be > 0',ntypes)
        endif
-    end if
+    end if ! mp_ioproc()
 
     ! broadcast basic system info
     call mp_bcast(natoms)

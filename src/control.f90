@@ -1,9 +1,12 @@
+!
+! FIXME: add documentation section here that documents the 
+! entire &control section, but shows up in the user's guide 
+! parts, not the developer's reference
+
 !> Module to control basic simulation parameters
 module control_io
-  use io, only : resin, separator
   use constants
   use kinds
-  use memory, only: adjust_mem
   use message_passing, only: mp_ioproc, mp_bcast, mp_error
   implicit none
 
@@ -30,6 +33,8 @@ contains
 
   !> Set default values for control module and namelist variables
   subroutine control_init
+    use memory, only: adjust_mem
+
     initial_step = -1
     current_step = -1
     last_step    = -1
@@ -53,6 +58,7 @@ contains
   !! different, i.e. the restart is read in first and then the
   !! settings in the input file can override the restart settings.
   subroutine control_read(channel)
+    use io, only : stdout, resin
     integer, intent(in) :: channel
     integer :: ierr
     integer :: tmp_initial, tmp_current, tmp_last, tmp_run, tmp_seq
@@ -61,6 +67,7 @@ contains
     ! input is only read by io task
     if (mp_ioproc()) then
 
+       write(stdout,*) 'Reading &control namelist from input'
        read(unit=channel,nml=control,iostat=ierr)
        if (ierr /= 0) call mp_error('Failure reading &control namelist',ierr)
 
@@ -80,6 +87,7 @@ contains
                access='sequential', action='read', status='old', iostat=ierr)
           if (ierr /= 0) call mp_error('Failure opening restart file',ierr)
 
+          write(stdout,*) 'Reading &control namelist from restart'
           read(unit=resin, nml=control, iostat=ierr)
           if (ierr /= 0) call mp_error('Failure reading &control restart',ierr)
 
@@ -126,6 +134,7 @@ contains
   !> Print run information from control module
   !! @param channel I/O channel for screen or log file
   subroutine control_print(channel)
+    use io, only : separator
     integer, intent(in) :: channel
 
     if (mp_ioproc()) then
