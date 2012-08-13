@@ -87,9 +87,9 @@ contains
              call mp_error('ntypes must be > 0 with topofile="internal"',ntypes)
           end if
        else if (TRIM(topofile) == 'unknown') then
-          call mp_error('topofile must be set',1)
+          call mp_error('Keyword topofile must be set',1)
        else
-          call mp_error('unrecognized file type for topofile',99)
+          call mp_error('Unrecognized file type for topofile',99)
        end if
     end if ! mp_ioproc()
 
