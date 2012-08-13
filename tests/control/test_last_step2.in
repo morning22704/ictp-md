@@ -1,0 +1,4 @@
+! positive last_step will also affect last_step
+&control
+ last_step=20
+/

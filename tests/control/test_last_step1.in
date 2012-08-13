@@ -1,0 +1,4 @@
+! negative last_step will be reset to 0
+&control
+ last_step=-20
+/

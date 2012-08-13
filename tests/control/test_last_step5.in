@@ -1,0 +1,4 @@
+! confirm default
+&control
+ last_step=0
+/

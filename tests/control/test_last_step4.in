@@ -1,0 +1,4 @@
+! when an entry is specified more than once, the last one wins.
+&control
+ last_step=20, last_step=10,
+/

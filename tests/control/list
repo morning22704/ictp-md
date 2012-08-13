@@ -24,3 +24,17 @@ run_step2
 run_step3
 run_step4
 run_step5
+
+# check last_step behavior
+last_step1
+last_step2
+last_step3
+last_step4
+last_step5
+
+# check run_step with last_step behavior
+last_run1
+last_run2
+last_run3
+last_run4
+last_run5

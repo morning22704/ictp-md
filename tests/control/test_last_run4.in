@@ -1,0 +1,5 @@
+! run_step + initial_step < last_step
+&control
+ initial_step=100,
+ run_step=100, last_step=250
+/

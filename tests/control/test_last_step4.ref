@@ -1,0 +1,11 @@
+ictp-md
+Assigned memory.*kBytes
+Trajectory name prefix.* mdrun
+Trajectory begins at step.* 0
+Trajectory finishes at step.* 10
+Sequence no. in trajectory.* 0
+Trajectory currently at step.* 0
+Run scheduled to end at step.* 0
+Assigned memory.*kBytes
+Failure reading &sysinfo namelist
+END-OF-RUN
