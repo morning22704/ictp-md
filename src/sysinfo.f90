@@ -15,9 +15,11 @@ module sysinfo_io
   private
   integer :: natoms, ntypes, nbonds, nbtypes, nangles, natypes
   logical :: update_x_r, update_x_s
-  type (xyz_vec) :: x_r, vel, for, x_s
-  type (dp_vec)  :: chg
-  type (int_vec) :: typ
+  type (xyz_vec)   :: x_r, vel, for, x_s
+  type (dp_vec)    :: chg, mass
+  type (int_vec)   :: typ
+  type (label_vec) :: lbl
+  type (label_vec) :: typemap
   character(len=255) :: topofile, geomfile
 
   namelist /sysinfo/ natoms, ntypes, nbonds, nbtypes, nangles, natypes, &
@@ -49,33 +51,46 @@ contains
     call adjust_mem(4*(3*dp+sp))
     chg%size   = -1
     typ%size   = -1
-    call adjust_mem(2*(dp+sp))
+    lbl%size   = -1
+    call adjust_mem(3*(dp+sp))
     topofile = 'unknown'
     geomfile = 'unknown'
     call adjust_mem(2*(255+sp))
   end subroutine sysinfo_init
   
   ! read sysinfo parameters
-  subroutine sysinfo_read(channel)
-    use io, only: stdout
-    use memory, only: alloc_vec
-    integer, intent(in) :: channel
+  subroutine sysinfo_read(restart)
+    use io, only: stdin, stdout, resin
+    use memory, only: alloc_vec, clear_vec
+    logical, intent(in) :: restart
     integer :: nthr, ierr
 
     ! input is only read by io task
     if (mp_ioproc()) then
 
+       if (restart) then
+          write(stdout,*) 'Reading &sysinfo namelist from restart'
+          read(resin,nml=sysinfo,iostat=ierr)
+          if (ierr /= 0) call mp_error('Failure reading &sysinfo namelist',ierr)
+       end if
+
        write(stdout,*) 'Reading &sysinfo namelist from input'
-       read(channel,nml=sysinfo,iostat=ierr)
+       read(stdin,nml=sysinfo,iostat=ierr)
        if (ierr /= 0) call mp_error('Failure reading &sysinfo namelist',ierr)
 
        ! some consistency checks
-       if (natoms <= 0) then
-          call mp_error('natoms must be > 0',natoms)
-       endif
-       if (ntypes <= 0) then
-          call mp_error('ntypes must be > 0',ntypes)
-       endif
+       if (TRIM(topofile) == 'internal') then
+          if (natoms <= 0) then
+             call mp_error('natoms must be > 0 with topofile="internal"',natoms)
+          end if
+          if (ntypes <= 0) then
+             call mp_error('ntypes must be > 0 with topofile="internal"',ntypes)
+          end if
+       else if (TRIM(topofile) == 'unknown') then
+          call mp_error('topofile must be set',1)
+       else
+          call mp_error('unrecognized file type for topofile',99)
+       end if
     end if ! mp_ioproc()
 
     ! broadcast basic system info
@@ -90,14 +105,18 @@ contains
     call alloc_vec(for,nthr*natoms)
     call alloc_vec(typ,natoms)
     call alloc_vec(chg,natoms)
+    call alloc_vec(lbl,natoms)
+    
+    call clear_vec(chg)
+    call clear_vec(vel)
+    lbl%v(:) = 'UNK'
+    typ%v(:) = -1     ! type < 0 means unset, type = 0 means ignore atom 
 
-!    call topology_read(channel,natoms,ntypes,typ,chg)
+    
+!       else if (TRIM(topofile) == 'unknown') then
+!          call mp_error('topofile must be set to a file or "internal"',1)
+!    call topology_read(stdin,natoms,ntypes,typ,chg)
 
-
-    chg%v(:) = d_zero
-    vel%x(:) = d_zero
-    vel%y(:) = d_zero
-    vel%z(:) = d_zero
     ! fixme: read types/charge from topofile, coordinates from geomfile
 
     call mp_bcast(typ)
@@ -105,6 +124,15 @@ contains
     call mp_bcast(chg)
     call mp_bcast(vel)
   end subroutine sysinfo_read
+
+  subroutine topology_read(channel)
+    integer, intent(in) :: channel
+
+    real(kind=dp), dimension(natoms)     :: charge
+    integer, dimension(natoms)           :: types
+    character(len=16), dimension(ntypes) :: labels
+    
+  end subroutine topology_read
 
   subroutine sysinfo_print(channel)
     integer, intent(in) :: channel

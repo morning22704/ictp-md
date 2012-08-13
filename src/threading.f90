@@ -25,7 +25,6 @@ contains
   !! store it in a module variable, which defaults to 1,
   !! if compiled OpenMP support is not available or included.
   subroutine thr_init
-    implicit none
 !$  integer, external :: omp_get_max_threads
 
     nthreads = 1
@@ -43,21 +42,19 @@ contains
 
   !> Print informative header text
   !> @param channel I/O unit to write header text to
-  subroutine thr_header(channel)
-    use io, only : separator
-    implicit none
-    integer, intent(in) :: channel
+  subroutine thr_header
+    use io, only : stdout,separator
     integer :: have_threads
 
     have_threads = 0
 !$  have_threads = 1
 
     if (have_threads > 0) then
-       write(channel,*) 'OpenMP enabled build. Number of threads :',nthreads
+       write(stdout,*) 'OpenMP enabled build. Number of threads :',nthreads
     else
-       write(channel,*) 'OpenMP not enabled in build'
+       write(stdout,*) 'OpenMP not enabled in this build'
     end if
-    write (channel,*) separator
+    write (stdout,*) separator
   end subroutine thr_header
 
 end module threading

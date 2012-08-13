@@ -6,10 +6,9 @@
 !! parallel setup, internal timing and memory profiling and
 !! printing the generic program banner. 
 subroutine basic_setup
-  use io, only: stdout
   use header
   ! use timer
-  use memory
+  use memory, only : memory_init, memory_print
   ! parallel programming modules
   use message_passing, only : mp_init, mp_header, mp_ioproc
   use threading, only : thr_init, thr_header
@@ -23,10 +22,10 @@ subroutine basic_setup
 
   ! print banners 
   if (mp_ioproc()) then
-     call version(stdout)
-     call mp_header(stdout)
-     call thr_header(stdout)
-     call memory_print(stdout)
+     call version
+     call mp_header
+     call thr_header
+     call memory_print
   end if
 end subroutine basic_setup
 
@@ -42,7 +41,6 @@ end subroutine basic_setup
 !!
 !! Ye, who enter here, beware of dragons.
 program ictp_md
-  use io, only : stdin
   use message_passing, only : mp_finish
   use input
   implicit none
@@ -51,7 +49,7 @@ program ictp_md
   call basic_setup
 
   ! read system settings from input
-  call input_read(stdin)
+  call input_read
 
   ! finish off
   call mp_finish

@@ -23,23 +23,23 @@ contains
 
 !> Print a program version banner
 !! @param channel I/O unit to print banner to.
-subroutine version(channel)
+subroutine version
+  use io, only : stdout,separator
   implicit none
-  integer, intent(in) :: channel
 
-  write (channel,*) '=================='
-  write (channel,*) ' ${name} v${version} '
-  write (channel,*) '=================='
-  write (channel,*) '-------------------------------------------------------'
-  write (channel,*) 'Compile date : ${date} on ${host}'
-  write (channel,*) 'Compile flags: ${flags}'
-  write (channel,*) '-------------------------------------------------------'
+  write (stdout,*) '=================='
+  write (stdout,*) ' ${name} v${version} '
+  write (stdout,*) '=================='
+  write (stdout,*) separator
+  write (stdout,*) 'Compile date : ${date} on ${host}'
+  write (stdout,*) 'Compile flags: ${flags}'
+  write (stdout,*) separator
 EOF
-git log -n 1 --pretty="     write (channel,*) 'Last commit  : %H'"
-git log -n 1 --pretty="     write (channel,*) 'Commit date  : %aD'" 
-git log -n 1 --pretty="     write (channel,*) 'Commit author: %an <%ae>'" 
+git log -n 1 --pretty="     write (stdout,*) 'Last commit  : %H'"
+git log -n 1 --pretty="     write (stdout,*) 'Commit date  : %aD'" 
+git log -n 1 --pretty="     write (stdout,*) 'Commit author: %an <%ae>'" 
 cat <<EOF
-     write (channel,*) '-------------------------------------------------------'
+     write (stdout,*) separator
 end subroutine version
 end module header
 EOF

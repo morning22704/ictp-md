@@ -4,8 +4,6 @@
 !! and calls the corresponding modules that handle the various logical
 !! groups of data I/O. 
 module input
-  use io, only: stdout
-  use memory, only: memory_print
   use control_io
   use sysinfo_io
   implicit none
@@ -24,18 +22,12 @@ contains
   end subroutine input_init
 
   !> Read input and restart information from all submodules
-  !! @param channel I/O channel for input
-  subroutine input_read(channel)
-    use message_passing, only : mp_ioproc
-    integer, intent(in) :: channel
+  subroutine input_read
+    logical :: restart
 
     if (need_init) call input_init
-    call control_read(channel)
-    call control_print(stdout)
-    if (mp_ioproc()) call memory_print(stdout)
-    call sysinfo_read(channel)
-    !call sysinfo_print(stdout)
-    if (mp_ioproc()) call memory_print(stdout)
+    call control_read(restart)
+    call sysinfo_read(restart)
   end subroutine input_read
 
 end module input

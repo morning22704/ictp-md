@@ -64,18 +64,19 @@ contains
   end subroutine mp_init
 
   !> Print message passing info banner
-  subroutine mp_header(channel)
-    use io, only : separator
-    implicit none
-    integer, intent(in) :: channel
-    
-    write(channel,*) 'Number of message passing processes :    ', nprocs
-    write(channel,*) separator
+  subroutine mp_header
+    use io, only : stdout,separator
+
+#if defined(_USE_MPI)    
+    write(stdout,*) 'Number of message passing processes :    ', nprocs
+#else
+    write(stdout,*) 'Message passing not enabled in this build'
+#endif
+    write(stdout,*) separator
   end subroutine mp_header
 
   !> Shut down message passing environment
   subroutine mp_finish
-    implicit none
     integer :: ierr
 #if defined(_USE_MPI)
     call mpi_finalize(ierr)

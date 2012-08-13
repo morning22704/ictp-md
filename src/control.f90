@@ -49,7 +49,7 @@ contains
   end subroutine control_init
   
   !> Read &control namelist
-  !! @param channel I/O channel to read namelist from
+  !! @param rest_flag indicate to the calling routine whether to do a restart
   !!
   !! The &control namelist is the first namelist to be read in
   !! and as such it differs from all other namelists as it is
@@ -57,9 +57,10 @@ contains
   !! from a restart file. For all other namelists, the order is
   !! different, i.e. the restart is read in first and then the
   !! settings in the input file can override the restart settings.
-  subroutine control_read(channel)
-    use io, only : stdout, resin
-    integer, intent(in) :: channel
+  subroutine control_read(rest_flag)
+    use io, only : stdin, stdout, resin
+    use memory, only : memory_print
+    logical, intent(out) :: rest_flag
     integer :: ierr
     integer :: tmp_initial, tmp_current, tmp_last, tmp_run, tmp_seq
     real(kind=dp) :: tmp_max
@@ -68,8 +69,9 @@ contains
     if (mp_ioproc()) then
 
        write(stdout,*) 'Reading &control namelist from input'
-       read(unit=channel,nml=control,iostat=ierr)
+       read(unit=stdin,nml=control,iostat=ierr)
        if (ierr /= 0) call mp_error('Failure reading &control namelist',ierr)
+       rest_flag = restart
 
        ! for the control namelist, the restart overrides the input
        if (restart) then
@@ -117,6 +119,8 @@ contains
           if (last_step < end_step) end_step = last_step
        end if
        if (seq_no < 0) seq_no = 0
+       call control_print
+       call memory_print
     end if ! mp_ioproc()
 
     ! broadcast info that is needed on all processes
@@ -132,20 +136,18 @@ contains
   end function use_restart
 
   !> Print run information from control module
-  !! @param channel I/O channel for screen or log file
-  subroutine control_print(channel)
-    use io, only : separator
-    integer, intent(in) :: channel
+  subroutine control_print
+    use io, only : stdout, separator
 
     if (mp_ioproc()) then
-       write(channel,*) 'Trajectory name prefix:      ', TRIM(prefix)
-       write(channel,*) 'Trajectory begins at step:   ', initial_step
+       write(stdout,*) 'Trajectory name prefix: ', TRIM(prefix)
+       write(stdout,*) 'Trajectory begins at step:   ', initial_step
        if (last_step > 0) &
-            write(channel,*) 'Trajectory finishes at step: ', last_step
-       write(channel,*) 'Sequence no. in trajectory:  ', seq_no
-       write(channel,*) 'Trajectory currently at step:',current_step
-       write(channel,*) 'Run scheduled to end at step:',end_step
-       write(channel,*) separator
+            write(stdout,*) 'Trajectory finishes at step: ', last_step
+       write(stdout,*) 'Sequence no. in trajectory:  ', seq_no
+       write(stdout,*) 'Trajectory currently at step:',current_step
+       write(stdout,*) 'Run scheduled to end at step:',end_step
+       write(stdout,*) separator
     endif
   end subroutine control_print
 

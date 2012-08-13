@@ -1,21 +1,27 @@
-! module with custom memory allocator and deallocators 
+! module with custom memory related operations, allocator, and deallocators 
 module memory
   use kinds
   use constants
-  use io, only : separator
   implicit none
 
   private
   real(kind=dp) :: total_mem
 
   public :: memory_init, memory_print, adjust_mem, get_mem
-  public :: alloc_vec, free_vec
+  public :: alloc_vec, clear_vec, free_vec
 
   interface alloc_vec
      module procedure alloc_xyz_vec
      module procedure alloc_dp_vec
      module procedure alloc_int_vec
      module procedure alloc_label_vec
+  end interface
+
+  interface clear_vec
+     module procedure clear_xyz_vec
+     module procedure clear_dp_vec
+     module procedure clear_int_vec
+     module procedure clear_label_vec
   end interface
 
   interface free_vec
@@ -46,12 +52,11 @@ contains
   end function get_mem
 
   ! print accounted memory
-  subroutine memory_print(channel)
-    integer, intent(in) :: channel
-
-    write(channel,'(A,F20.3,A)') ' Assigned memory:            ', &
+  subroutine memory_print
+  use io, only : stdout, separator
+    write(stdout,'(A,F20.3,A)') ' Assigned memory:            ', &
          total_mem/kbyte, ' kBytes'
-    write(channel,*) separator
+    write(stdout,*) separator
   end subroutine memory_print
 
   ! allocate memory for vector types
@@ -90,6 +95,33 @@ contains
     vec%size = num
     call adjust_mem(num*16)
   end subroutine alloc_label_vec
+
+  ! clear memory for vector types
+  subroutine clear_xyz_vec(vec)
+    type(xyz_vec), intent(inout) :: vec
+
+    vec%x(:) = d_zero
+    vec%y(:) = d_zero
+    vec%z(:) = d_zero
+  end subroutine clear_xyz_vec
+
+  subroutine clear_dp_vec(vec)
+    type(dp_vec), intent(inout) :: vec
+
+    vec%v(:) = d_zero
+  end subroutine clear_dp_vec
+
+  subroutine clear_int_vec(vec)
+    type(int_vec), intent(inout) :: vec
+
+    vec%v(:) = 0
+  end subroutine clear_int_vec
+
+  subroutine clear_label_vec(vec)
+    type(label_vec), intent(inout) :: vec
+
+    vec%v(:) = '                '
+  end subroutine clear_label_vec
 
   ! free memory for vector types
   subroutine free_xyz_vec(vec)
