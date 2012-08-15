@@ -81,6 +81,10 @@ contains
           tmp_max     = max_time
           tmp_seq     = seq_no
 
+          if (trim(restfile) == 'unknown') then
+             call mp_error('Set "restfile" to name of restart file',15)
+          end if
+
           ! open restart channel and verify validity and version
           open(unit=resin, file=TRIM(restfile), form='formatted', &
                access='sequential', action='read', status='old', iostat=ierr)
@@ -137,7 +141,9 @@ contains
     use io, only : stdout, separator
 
     if (mp_ioproc()) then
-       write(stdout,*) 'Trajectory name prefix: ', TRIM(prefix)
+       write(stdout,*) separator
+       write(stdout,*) 'Trajectory name prefix: ', trim(prefix)
+       if (restart) write(stdout,*) 'Restart read from file: ', trim(restfile)
        write(stdout,*) 'Trajectory begins at step:   ', initial_step
        if (last_step > 0) &
             write(stdout,*) 'Trajectory finishes at step: ', last_step

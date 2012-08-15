@@ -5,7 +5,7 @@ module atoms
   implicit none
 
   private
-  integer :: natoms, nghosts, nall, ntypes
+  integer :: natoms, ntypes
   logical :: valid_x_r, valid_x_s
   logical :: have_chg
   type (xyz_vec)   :: x_r, x_s, vel, for
@@ -18,14 +18,13 @@ module atoms
 contains
 
   ! set default values
-  subroutine atoms_init
-    use memory, only: adjust_mem
+  subroutine atoms_init(maxtypes)
+    use memory, only: adjust_mem, alloc_vec
+    integer, intent(in) :: maxtypes
 
     natoms     = -1
-    nghosts    =  0
-    nall       =  0
     ntypes     = -1
-    call adjust_mem(4*sp)
+    call adjust_mem(2*sp)
     valid_x_r  = .false.
     valid_x_s  = .false.
     have_chg   = .false.
@@ -35,20 +34,20 @@ contains
     for%size = -1
     x_s%size = -1
     call adjust_mem(4*(3*dp+sp))
-    mss%size = -1
-    chg%size = -1
     typ%size = -1
+    chg%size = -1
+    mss%size = -1
     lbl%size = -1
     call adjust_mem(4*(dp+sp))
+
+    call alloc_vec(mss,maxtypes)
+    call alloc_vec(lbl,maxtypes)
   end subroutine atoms_init
   
   subroutine set_natoms(size)
     use memory, only: alloc_vec, clear_vec
     integer, intent(in) :: size
-    integer :: nthr  
-    type (xyz_vec) :: tmp_xyz
-    type (dp_vec)  :: tmp_dp
-    type (int_vec) :: tmp_int
+    integer :: nthr
 
     if (natoms >= 0) then
     end if
