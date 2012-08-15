@@ -23,11 +23,10 @@ contains
 
   !> Read input and restart information from all submodules
   subroutine input_read
-    logical :: restart
 
     if (need_init) call input_init
-    call control_read(restart)
-    call sysinfo_read(restart)
+    call control_read
+    call sysinfo_read
   end subroutine input_read
 
 end module input

@@ -49,7 +49,6 @@ contains
   end subroutine control_init
   
   !> Read &control namelist
-  !! @param rest_flag indicate to the calling routine whether to do a restart
   !!
   !! The &control namelist is the first namelist to be read in
   !! and as such it differs from all other namelists as it is
@@ -57,10 +56,9 @@ contains
   !! from a restart file. For all other namelists, the order is
   !! different, i.e. the restart is read in first and then the
   !! settings in the input file can override the restart settings.
-  subroutine control_read(rest_flag)
+  subroutine control_read
     use io, only : stdin, stdout, resin
     use memory, only : memory_print
-    logical, intent(out) :: rest_flag
     integer :: ierr
     integer :: tmp_initial, tmp_current, tmp_last, tmp_run, tmp_seq
     real(kind=dp) :: tmp_max
@@ -71,7 +69,6 @@ contains
        write(stdout,*) 'Reading &control namelist from input'
        read(unit=stdin,nml=control,iostat=ierr)
        if (ierr /= 0) call mp_error('Failure reading &control namelist',ierr)
-       rest_flag = restart
 
        ! for the control namelist, the restart overrides the input
        if (restart) then
