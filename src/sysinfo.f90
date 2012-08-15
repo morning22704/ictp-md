@@ -10,8 +10,6 @@ module sysinfo_io
   use message_passing, only: mp_ioproc, mp_bcast, mp_error
   use threading, only: thr_get_num_threads
   use control_io, only: use_restart
-  use atoms
-  use cell
   implicit none
 
   private
@@ -44,14 +42,18 @@ contains
   ! read sysinfo parameters
   subroutine sysinfo_read
     use io
+    use atom, only: atom_init
+    use cell, only: cell_init
     use memory, only: alloc_vec, clear_vec
-    integer :: nthr, ierr, extpos
+    integer :: nthr, ierr, nmlchannel
     character(len=3) :: extension
 
     ! input is only read by io task
     if (mp_ioproc()) then
 
+       nmlchannel = stdin
        if (use_restart()) then
+          nmlchannel = resin
           write(stdout,*) 'Reading &sysinfo namelist from restart'
           read(resin,nml=sysinfo,iostat=ierr)
           if (ierr /= 0) call mp_error('Failure reading &sysinfo namelist',ierr)
@@ -74,11 +76,19 @@ contains
        write(stdout,*) separator
 
        ! initialize system storage
-       call atoms_init(maxtypes)
+       call atom_init(maxtypes)
        call cell_init
 
+       if (trim(topofile) /= 'internal') then
+          open(unit=topin, file=trim(topofile), form='formatted', &
+               status='old', iostat=ierr)
+          if (ierr /= 0) call mp_error('Failure opening topology file',ierr)
+          nmlchannel=topin
+       end if
        if (trim(inputfmt) == 'lammps') then
        else if (trim(inputfmt) == 'xyz/xyz') then
+          call xyz_topology(nmlchannel)
+          if (nmlchannel == topin) close (unit=topin)
        else if (trim(inputfmt) == 'psf/xyz') then
        else
           call mp_error('Unknown or unsupported input data format',ierr)
@@ -86,4 +96,27 @@ contains
     end if ! mp_ioproc()
   end subroutine sysinfo_read
 
+  subroutine xyz_topology(channel)
+    use atom, only: atom_resize, set_type, get_ntypes
+    integer, intent(in) :: channel
+    integer :: i,pos,ierr,natoms
+    character(len=255) :: line
+    character(len=16) :: name
+
+    read(channel, fmt=*, iostat=ierr) natoms
+    if (ierr /= 0) call mp_error('Failure to read "natoms" from xyz file',ierr)
+    call atom_resize(natoms)
+    
+    read(channel, fmt='(A)', iostat=ierr) line
+    do i=1, natoms
+       read(channel, fmt='(A)', iostat=ierr) line
+       line = adjustl(line)
+       pos = index(line,' ')
+       if (pos < 1) pos = 16
+       name = line(1:pos)
+       call set_type(i,name)
+    end do
+
+    print*,'ntypes is now:',get_ntypes()
+  end subroutine xyz_topology
 end module sysinfo_io
