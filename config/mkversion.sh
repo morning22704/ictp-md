@@ -21,8 +21,7 @@ module header
 
 contains
 
-!> Print a program version banner
-!! @param channel I/O unit to print banner to.
+!> Print the program version banner
 subroutine version
   use io, only : stdout,separator
   implicit none

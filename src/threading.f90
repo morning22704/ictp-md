@@ -41,7 +41,6 @@ contains
   end function thr_get_num_threads
 
   !> Print informative header text
-  !> @param channel I/O unit to write header text to
   subroutine thr_header
     use io, only : stdout,separator
     integer :: have_threads
