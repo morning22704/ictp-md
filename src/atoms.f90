@@ -1,6 +1,7 @@
 !> Module to store and maintain per atom data
 module atom
   use kinds
+  use constants
   use threading, only: thr_get_num_threads
   use message_passing, only: mp_error
   implicit none
@@ -9,13 +10,16 @@ module atom
   integer :: natoms, ntypes
   logical :: valid_x_r, valid_x_s
   logical :: have_chg
+  integer, parameter :: deftypes = 16
   type (xyz_vec)   :: x_r, x_s, vel, for
   type (dp_vec)    :: chg, mss
   type (int_vec)   :: typ
   type (label_vec) :: lbl
 
-  public :: atom_init, atom_resize, set_type
-  public :: get_ntypes
+  public :: atom_init, atom_resize
+  public :: set_type, set_mass, set_charge
+  public :: get_ntypes, get_natoms
+  public :: deftypes
 
 contains
 
@@ -64,7 +68,8 @@ contains
     end if
   end subroutine atom_resize
 
-  subroutine set_type(idx,name)
+  function set_type(idx,name)
+    integer set_type
     integer, intent(in) :: idx
     character(len=16), intent(in) :: name
     integer :: i, newtype
@@ -87,12 +92,40 @@ contains
        end if
     end if
     typ%v(idx) = newtype
-  end subroutine set_type
+    set_type = newtype
+  end function set_type
+
+  subroutine set_mass(idx,mass)
+    integer, intent(in) :: idx
+    real(kind=dp), intent(in) :: mass
+
+    if (idx > size(mss%v)) &
+         call mp_error('Too large atom type. Increase maxtypes.',idx)
+    if (mass <= d_zero) call mp_error('Mass must be > 0.0',idx)
+
+    mss%v(idx) = mass
+  end subroutine set_mass
+
+  subroutine set_charge(idx,charge)
+    integer, intent(in) :: idx
+    real(kind=dp), intent(in) :: charge
+    
+    if (charge /= d_zero) then
+       have_chg = .true.
+       chg%v(idx) = charge
+    end if
+  end subroutine set_charge
 
   function get_ntypes()
     integer :: get_ntypes
 
     get_ntypes = ntypes
   end function get_ntypes
+  
+  function get_natoms()
+    integer :: get_natoms
+
+    get_natoms = natoms
+  end function get_natoms
   
 end module atom
