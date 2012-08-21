@@ -1,5 +1,5 @@
 !> Module to store and maintain per atom data
-module atom
+module atoms
   use kinds
   use constants
   use threading, only: thr_get_num_threads
@@ -16,7 +16,7 @@ module atom
   type (int_vec)   :: typ
   type (label_vec) :: lbl
 
-  public :: atom_init, atom_resize
+  public :: atoms_init, atoms_resize
   public :: set_type, set_mass, set_charge
   public :: get_ntypes, get_natoms
   public :: deftypes
@@ -24,7 +24,7 @@ module atom
 contains
 
   ! set default values
-  subroutine atom_init(maxtypes)
+  subroutine atoms_init(maxtypes)
     use memory, only: adjust_mem, alloc_vec
     integer, intent(in) :: maxtypes
 
@@ -48,9 +48,9 @@ contains
 
     call alloc_vec(mss,maxtypes)
     call alloc_vec(lbl,maxtypes)
-  end subroutine atom_init
+  end subroutine atoms_init
   
-  subroutine atom_resize(size)
+  subroutine atoms_resize(size)
     use memory, only: alloc_vec
     integer, intent(in) :: size
     integer :: nthr
@@ -66,7 +66,7 @@ contains
     else
        call mp_error('Changing "natoms" currently not supported',natoms)
     end if
-  end subroutine atom_resize
+  end subroutine atoms_resize
 
   function set_type(idx,name)
     integer set_type
@@ -128,4 +128,4 @@ contains
     get_natoms = natoms
   end function get_natoms
   
-end module atom
+end module atoms

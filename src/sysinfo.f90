@@ -7,7 +7,7 @@
 module sysinfo_io
   use kinds
   use constants
-  use atom, only: deftypes
+  use atoms, only: deftypes
   use message_passing, only: mp_ioproc, mp_bcast, mp_error
   use threading, only: thr_get_num_threads
   use control_io, only: use_restart
@@ -48,7 +48,7 @@ contains
   ! read sysinfo parameters
   subroutine sysinfo_read
     use io
-    use atom, only: atom_init
+    use atoms, only: atoms_init
     use cell, only: cell_init
     use memory, only: alloc_vec, clear_vec
     integer :: nthr, ierr, topchannel, geochannel
@@ -80,7 +80,7 @@ contains
        write(stdout,*) separator
 
        ! initialize system storage
-       call atom_init(maxtypes)
+       call atoms_init(maxtypes)
        call cell_init
 
        if (trim(topofile) == 'internal') then
@@ -129,7 +129,7 @@ contains
   end subroutine sysinfo_read
 
   subroutine xyz_topology(channel)
-    use atom, only: atom_resize, set_type, set_charge, set_mass
+    use atoms, only: atoms_resize, set_type, set_charge, set_mass
     integer, intent(in) :: channel
     integer :: i, ierr, natoms, thistype
     character(len=255) :: line
@@ -137,7 +137,7 @@ contains
 
     read(channel, fmt=*, iostat=ierr) natoms
     if (ierr /= 0) call mp_error('Failure to read "natoms" from xyz file',ierr)
-    call atom_resize(natoms)
+    call atoms_resize(natoms)
     
     read(channel, fmt='(A)', iostat=ierr) line
     do i=1, natoms
@@ -153,7 +153,7 @@ contains
   end subroutine xyz_topology
 
   subroutine xyz_geometry(channel)
-    use atom, only: atom_resize, get_natoms
+    use atoms, only: atoms_resize, get_natoms
     integer, intent(in) :: channel
     integer :: i, ierr, natoms, pos
     character(len=255) :: line
