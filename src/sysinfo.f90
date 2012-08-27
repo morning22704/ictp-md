@@ -7,7 +7,7 @@
 module sysinfo_io
   use kinds
   use constants
-  use atoms, only: deftypes
+  use atoms, only: ndeftypes
   use message_passing, only: mp_ioproc, mp_bcast, mp_error
   use threading, only: thr_get_num_threads
   use control_io, only: use_restart
@@ -16,11 +16,12 @@ module sysinfo_io
   private
   integer :: maxtypes
   real(kind=dp) :: cellparam(6) ! a, b, c, cosalpha, cosbeta, cosgamma
-  real(kind=dp), dimension(deftypes) :: defmass, defcharge
+  real(kind=dp), dimension(ndeftypes) :: defmass, defcharge
+  character(len=16), dimension(ndeftypes) :: deftype
   character(len=8) :: inputfmt
   character(len=255) :: topofile, geomfile
 
-  namelist /sysinfo/ maxtypes, cellparam, defmass, defcharge, &
+  namelist /sysinfo/ maxtypes, cellparam, defmass, defcharge, deftype, &
        inputfmt, topofile, geomfile
 
   public :: sysinfo_init, sysinfo_read
@@ -31,13 +32,15 @@ contains
   subroutine sysinfo_init
     use memory, only: adjust_mem
 
-    maxtypes = deftypes
+    maxtypes = ndeftypes
     call adjust_mem(sp)
     cellparam(:) = d_zero
     call adjust_mem(6*dp)
     defmass(:) = d_zero
     defcharge(:) = d_zero
-    call adjust_mem(2*deftypes*dp)
+    call adjust_mem(2*ndeftypes*dp)
+    deftype(:) = 'unknown'
+    call adjust_mem(ndeftypes*lblen)
     inputfmt = 'unknown'
     call adjust_mem(8+sp)
     topofile = 'unknown'
@@ -48,11 +51,10 @@ contains
   ! read sysinfo parameters
   subroutine sysinfo_read
     use io
-    use atoms, only: atoms_init
+    use atoms, only: atoms_init, types_init
     use cell, only: cell_init
     use memory, only: alloc_vec, clear_vec
-    integer :: nthr, ierr, topchannel, geochannel
-    character(len=3) :: extension
+    integer :: ierr, topchannel, geochannel
 
     ! input is only read by io task
     if (mp_ioproc()) then
@@ -81,6 +83,7 @@ contains
 
        ! initialize system storage
        call atoms_init(maxtypes)
+       call types_init(deftype)
        call cell_init
 
        if (trim(topofile) == 'internal') then
@@ -117,6 +120,9 @@ contains
 
        if (trim(inputfmt) == 'lammps') then
        else if (trim(inputfmt) == 'xyz') then
+          call xyz_topogeom(topchannel)
+          if (topchannel == topin) close (unit=topin)
+       else if (trim(inputfmt) == 'xyz/xyz') then
           call xyz_topology(topchannel)
           if (topchannel == topin) close (unit=topin)
           call xyz_geometry(geochannel)
@@ -128,8 +134,40 @@ contains
     end if ! mp_ioproc()
   end subroutine sysinfo_read
 
+  subroutine xyz_topogeom(channel)
+    use atoms
+    integer, intent(in) :: channel
+    integer :: i, ierr, idx, natoms, thistype
+    real(kind=dp), dimension(3) :: pos
+    character(len=255) :: line
+    character(len=16) :: name
+
+    read(channel, fmt=*, iostat=ierr) natoms
+    if (ierr /= 0) call mp_error('Failure to read "natoms" from xyz file',ierr)
+    call atoms_resize(natoms)
+    
+    read(channel, fmt='(A)', iostat=ierr) line
+    do i=1, natoms
+       read(channel, fmt='(A)', iostat=ierr) line
+       line = adjustl(line)
+       name = trim(line(1:16))
+       thistype = set_type(i,name)
+       if (thistype > ndeftypes) &
+            call mp_error('Too many atom types. Increase ndeftypes.',thistype)
+       call set_idx(i,i)
+       call set_charge(i,defcharge(thistype))
+       call set_mass(thistype,defmass(thistype))
+       idx = index(line,' ');
+       if (idx > 0) line = line(idx:)
+       read(line,fmt=*,iostat=ierr) pos(1),pos(2),pos(3)
+       if (ierr /= 0) &
+            call mp_error('Failure to read coordinates from xyz file',ierr)
+       call set_pos(i,pos)
+    end do
+  end subroutine xyz_topogeom
+
   subroutine xyz_topology(channel)
-    use atoms, only: atoms_resize, set_type, set_charge, set_mass
+    use atoms
     integer, intent(in) :: channel
     integer :: i, ierr, natoms, thistype
     character(len=255) :: line
@@ -145,17 +183,19 @@ contains
        line = adjustl(line)
        name = trim(line)
        thistype = set_type(i,name)
-       if (thistype > deftypes) &
-            call mp_error('Too many atom types. Increase deftypes.',thistype)
+       if (thistype > ndeftypes) &
+            call mp_error('Too many atom types. Increase ndeftypes.',thistype)
+       call set_idx(i,i)
        call set_charge(i,defcharge(thistype))
        call set_mass(thistype,defmass(thistype))
     end do
   end subroutine xyz_topology
 
   subroutine xyz_geometry(channel)
-    use atoms, only: atoms_resize, get_natoms
+    use atoms, only: atoms_resize, get_natoms, set_pos
     integer, intent(in) :: channel
-    integer :: i, ierr, natoms, pos
+    integer :: i, idx, ierr, natoms
+    real(kind=dp), dimension(3) :: pos
     character(len=255) :: line
 
     read(channel, fmt=*, iostat=ierr) natoms
@@ -167,6 +207,12 @@ contains
     do i=1, natoms
        read(channel, fmt='(A)', iostat=ierr) line
        line = adjustl(line)
+       idx = index(line,' ');
+       if (idx > 0) line = line(idx:)
+       read(line,fmt=*,iostat=ierr) pos(1),pos(2),pos(3)
+       if (ierr /= 0) &
+            call mp_error('Failure to read coordinates from xyz file',ierr)
+       call set_pos(i,pos)
     end do
   end subroutine xyz_geometry
 end module sysinfo_io
