@@ -51,7 +51,7 @@ contains
   ! read sysinfo parameters
   subroutine sysinfo_read
     use io
-    use atoms, only: atoms_init, types_init
+    use atoms, only: atoms_init, atoms_replicate, types_init
     use cell, only: cell_init
     use memory, only: alloc_vec, clear_vec
     integer :: ierr, topchannel, geochannel
@@ -135,6 +135,9 @@ contains
           call mp_error('Unknown or unsupported input data format',ierr)
        end if
     end if ! mp_ioproc()
+
+    call atoms_replicate(maxtypes)
+    ! call cell_replicate
   end subroutine sysinfo_read
 
   subroutine xyz_topogeom(channel)
@@ -206,7 +209,7 @@ contains
   end subroutine xyz_topology
 
   subroutine xyz_geometry(channel)
-    use atoms, only: atoms_resize, get_natoms, set_pos
+    use atoms, only: get_natoms, set_pos
     integer, intent(in) :: channel
     integer :: i, idx, ierr, natoms
     real(kind=dp), dimension(3) :: pos

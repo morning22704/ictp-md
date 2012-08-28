@@ -18,7 +18,7 @@ module atoms
   type (int_vec)   :: typ, idx
   type (label_vec) :: lbl
 
-  public :: atoms_init, atoms_resize, types_init
+  public :: atoms_init, atoms_resize, atoms_replicate, types_init
   public :: set_type, set_idx, set_mass, set_charge, set_pos
   public :: get_ntypes, get_natoms
   public :: ndeftypes
@@ -59,19 +59,33 @@ contains
     integer :: nthr
 
     nthr = thr_get_num_threads()
-    if (natoms < 0) then
-       call alloc_vec(x_r,size)
-       call alloc_vec(x_s,size)
-       call alloc_vec(vel,size)
-       call alloc_vec(for,size*nthr)
-       call alloc_vec(typ,size)
-       call alloc_vec(idx,size)
-       call alloc_vec(chg,size)
-    else
-       call mp_error('Changing "natoms" currently not supported',natoms)
-    end if
+    call alloc_vec(x_r,size)
+    call alloc_vec(x_s,size)
+    call alloc_vec(vel,size)
+    call alloc_vec(for,size*nthr)
+    call alloc_vec(typ,size)
+    call alloc_vec(idx,size)
+    call alloc_vec(chg,size)
     natoms = size
   end subroutine atoms_resize
+
+  subroutine atoms_replicate(size)
+    use memory, only: alloc_vec
+    use message_passing, only: mp_bcast
+    integer, intent(in) :: size
+    integer :: nthr
+
+    nthr = thr_get_num_threads()
+
+    call mp_bcast(natoms)
+    call mp_bcast(x_r)
+    valid_x_r = .true.
+    call mp_bcast(typ)
+    call mp_bcast(have_chg)
+    if (have_chg) call mp_bcast(chg)
+    call mp_bcast(mss)
+    call alloc_vec(for,size*nthr)
+  end subroutine atoms_replicate
 
   subroutine types_init(typelist,maxtypes)
     integer, intent(in) :: maxtypes

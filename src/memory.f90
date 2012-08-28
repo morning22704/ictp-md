@@ -64,6 +64,8 @@ contains
     type(xyz_vec), intent(inout) :: vec
     integer, intent(in) :: num
 
+    if (num == vec%size) return
+    if (vec%size > 0) call free_vec(vec)
     allocate(vec%x(num),vec%y(num),vec%z(num))
     vec%size = num
     call adjust_mem(3*num*dp)
@@ -73,6 +75,8 @@ contains
     type(dp_vec), intent(inout) :: vec
     integer, intent(in) :: num
 
+    if (num == vec%size) return
+    if (vec%size > 0) call free_vec(vec)
     allocate(vec%v(num))
     vec%size = num
     call adjust_mem(num*dp)
@@ -82,6 +86,8 @@ contains
     type(int_vec), intent(inout) :: vec
     integer, intent(in) :: num
 
+    if (num == vec%size) return
+    if (vec%size > 0) call free_vec(vec)
     allocate(vec%v(num))
     vec%size = num
     call adjust_mem(num*sp)
@@ -91,6 +97,8 @@ contains
     type(label_vec), intent(inout) :: vec
     integer, intent(in) :: num
 
+    if (num == vec%size) return
+    if (vec%size > 0) call free_vec(vec)
     allocate(vec%v(num))
     vec%size = num
     call adjust_mem(num*16)
