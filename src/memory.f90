@@ -100,59 +100,69 @@ contains
   subroutine clear_xyz_vec(vec)
     type(xyz_vec), intent(inout) :: vec
 
-    vec%x(:) = d_zero
-    vec%y(:) = d_zero
-    vec%z(:) = d_zero
+    if (vec%size > 0) then
+       vec%x(:) = d_zero
+       vec%y(:) = d_zero
+       vec%z(:) = d_zero
+    end if
   end subroutine clear_xyz_vec
 
   subroutine clear_dp_vec(vec)
     type(dp_vec), intent(inout) :: vec
 
-    vec%v(:) = d_zero
+    if (vec%size > 0) vec%v(:) = d_zero
   end subroutine clear_dp_vec
 
   subroutine clear_int_vec(vec)
     type(int_vec), intent(inout) :: vec
 
-    vec%v(:) = 0
+    if (vec%size > 0) vec%v(:) = 0
   end subroutine clear_int_vec
 
   subroutine clear_label_vec(vec)
     type(label_vec), intent(inout) :: vec
 
-    vec%v(:) = '                '
+    if (vec%size > 0) vec%v(:) = '                '
   end subroutine clear_label_vec
 
   ! free memory for vector types
   subroutine free_xyz_vec(vec)
     type(xyz_vec), intent(inout) :: vec
 
-    deallocate(vec%x,vec%y,vec%z)
-    call adjust_mem(-3*vec%size*dp)
+    if (vec%size > 0) then
+       deallocate(vec%x,vec%y,vec%z)
+       call adjust_mem(-3*vec%size*dp)
+    end if
     vec%size = 0
   end subroutine free_xyz_vec
 
   subroutine free_dp_vec(vec)
     type(dp_vec), intent(inout) :: vec
 
-    deallocate(vec%v)
-    call adjust_mem(-vec%size*dp)
+    if (vec%size > 0) then
+       deallocate(vec%v)
+       call adjust_mem(-vec%size*dp)
+    end if
     vec%size = 0
   end subroutine free_dp_vec
 
   subroutine free_int_vec(vec)
     type(int_vec), intent(inout) :: vec
 
-    deallocate(vec%v)
-    call adjust_mem(-vec%size*sp)
+    if (vec%size > 0) then
+       deallocate(vec%v)
+       call adjust_mem(-vec%size*sp)
+    end if
     vec%size = 0
   end subroutine free_int_vec
 
   subroutine free_label_vec(vec)
     type(label_vec), intent(inout) :: vec
 
-    deallocate(vec%v)
-    call adjust_mem(-vec%size*16-sp)
+    if (vec%size > 0) then
+       deallocate(vec%v)
+       call adjust_mem(-vec%size*16-sp)
+    end if
     vec%size = 0
   end subroutine free_label_vec
 
