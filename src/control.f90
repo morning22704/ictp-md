@@ -19,14 +19,15 @@ module control_io
   integer :: seq_no         !< Sequence number of run in trajectory
   real(kind=dp) :: max_time !< Maximal wall time for this run
   logical :: restart        !< Flag to trigger reading in a restart
+  logical :: verbose        !< Flag to trigger verbose output
   character(len=120) :: restfile !< Path to restart file
   character(len=120) :: prefix   !< Prefix
 
   namelist /control/ initial_step, current_step, last_step, run_step, &
-       seq_no, max_time, restart, restfile, prefix
+       seq_no, max_time, restart, verbose, restfile, prefix
   
   public :: control_init, control_read, control_print
-  public :: use_restart
+  public :: is_restart, is_verbose
 !  public :: get_step
 
 contains
@@ -43,9 +44,10 @@ contains
     seq_no       = -1
     max_time     = -d_one
     restart      = .false.
+    verbose      = .true.
     restfile     = 'unknown'
     prefix       = 'mdrun'
-    call adjust_mem(6*sp+dp+sp+2*(120+sp)) ! global memory use of module
+    call adjust_mem(6*sp+dp+2*sp+2*(120+sp)) ! global memory use of module
   end subroutine control_init
   
   !> Read &control namelist
@@ -61,6 +63,7 @@ contains
     use memory, only : memory_print
     integer :: ierr
     integer :: tmp_initial, tmp_current, tmp_last, tmp_run, tmp_seq
+    logical :: tmp_verbose
     real(kind=dp) :: tmp_max
 
     ! input is only read by io task
@@ -80,6 +83,7 @@ contains
           tmp_run     = run_step
           tmp_max     = max_time
           tmp_seq     = seq_no
+          tmp_verbose = verbose
 
           if (trim(restfile) == 'unknown') then
              call mp_error('Set "restfile" to name of restart file',15)
@@ -104,6 +108,7 @@ contains
           if (tmp_max >= d_zero) max_time     = tmp_max
           if (tmp_seq >= 0)      seq_no       = tmp_seq
           restart = .true.
+          verbose = tmp_verbose
           if (current_step < initial_step) &
                call mp_error('current_step must be larger than initial_step',1)
        endif
@@ -127,14 +132,22 @@ contains
     ! broadcast info that is needed on all processes
     call mp_bcast(current_step)
     call mp_bcast(end_step)
+    call mp_bcast(verbose)
   end subroutine control_read
 
   !> Flag if input data is to be read from a restart
   !! @returns True if we need to read a restart
-  function use_restart()
-    logical use_restart
-    use_restart = restart
-  end function use_restart
+  function is_restart()
+    logical is_restart
+    is_restart = restart
+  end function is_restart
+
+  !> Flag if verbose output is requested
+  !! @returns True if we need to be verbose
+  function is_verbose()
+    logical is_verbose
+    is_verbose = verbose
+  end function is_verbose
 
   !> Print run information from control module
   subroutine control_print
@@ -143,6 +156,7 @@ contains
     if (mp_ioproc()) then
        write(stdout,*) separator
        write(stdout,*) 'Trajectory name prefix: ', trim(prefix)
+       if (verbose) write(stdout,*) 'Verbose output is requested '
        if (restart) write(stdout,*) 'Restart read from file: ', trim(restfile)
        write(stdout,*) 'Trajectory begins at step:   ', initial_step
        if (last_step > 0) &
