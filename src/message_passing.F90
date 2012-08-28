@@ -8,7 +8,7 @@
 module message_passing
 
   use kinds
-  use memory, only: adjust_mem
+  use memory, only: adjust_mem, alloc_vec, free_vec
   implicit none
 
   private
@@ -24,6 +24,7 @@ module message_passing
   interface mp_bcast
      module procedure bcast_int
      module procedure bcast_dp
+     module procedure bcast_log
      module procedure bcast_xyz_vec
      module procedure bcast_dp_vec
      module procedure bcast_int_vec
@@ -122,13 +123,31 @@ contains
 #endif
   end subroutine bcast_dp
 
-  subroutine bcast_xyz_vec(val)
+  subroutine bcast_log(val)
     implicit none
-    type(xyz_vec), intent(inout) :: val
+    logical, intent(inout) :: val
 #if defined(_USE_MPI)
     integer :: ierr
     include 'mpif.h'
 
+    call mpi_bcast(val,1,MPI_LOGICAL,ioproc,comm,ierr)
+#endif
+  end subroutine bcast_log
+
+  subroutine bcast_xyz_vec(val)
+    implicit none
+    type(xyz_vec), intent(inout) :: val
+#if defined(_USE_MPI)
+    integer :: ierr, newsize
+    include 'mpif.h'
+
+    newsize = val%size
+    call mpi_bcast(newsize,1,MPI_INTEGER,ioproc,comm,ierr)
+
+    if (myrank /= ioproc) then
+       call free_vec(val)
+       call alloc_vec(val,newsize)
+    end if
     call mpi_bcast(val%x,val%size,MPI_DOUBLE_PRECISION,&
          ioproc,comm,ierr)
     call mpi_bcast(val%y,val%size,MPI_DOUBLE_PRECISION,&
@@ -142,9 +161,16 @@ contains
     implicit none
     type(dp_vec), intent(inout) :: val
 #if defined(_USE_MPI)
-    integer :: ierr
+    integer :: ierr, newsize
     include 'mpif.h'
 
+    newsize = val%size
+    call mpi_bcast(newsize,1,MPI_INTEGER,ioproc,comm,ierr)
+
+    if (myrank /= ioproc) then
+       call free_vec(val)
+       call alloc_vec(val,newsize)
+    end if
     call mpi_bcast(val%v,val%size,MPI_DOUBLE_PRECISION,&
          ioproc,comm,ierr)
 #endif
@@ -154,9 +180,16 @@ contains
     implicit none
     type(int_vec), intent(inout) :: val
 #if defined(_USE_MPI)
-    integer :: ierr
+    integer :: ierr, newsize
     include 'mpif.h'
 
+    newsize = val%size
+    call mpi_bcast(newsize,1,MPI_INTEGER,ioproc,comm,ierr)
+
+    if (myrank /= ioproc) then
+       call free_vec(val)
+       call alloc_vec(val,newsize)
+    end if
     call mpi_bcast(val%v,val%size,MPI_DOUBLE_PRECISION,&
          ioproc,comm,ierr)
 #endif
