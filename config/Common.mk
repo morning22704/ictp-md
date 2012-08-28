@@ -27,8 +27,8 @@ clean:
 .PHONY: clean compile default depend version doc
 ##########################################
 # generate version header
-version.f90: .ver1 $(SRC) $(PPS) ../config/mkversion.sh ../config/Common.mk
-	@sh ../config/mkversion.sh $(NAME) $(VERSION) \
+version.f90: .ver1 $(SRC) $(PPS) ../config/mkversion.pl ../config/Common.mk
+	@perl ../config/mkversion.pl $(NAME) $(VERSION) \
 		FC="$(FC)" FCFLAGS="$(FCFLAGS)"
 
 .ver1:
