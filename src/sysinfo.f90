@@ -10,7 +10,7 @@ module sysinfo_io
   use atoms, only: ndeftypes
   use message_passing, only: mp_ioproc, mp_bcast, mp_error
   use threading, only: thr_get_num_threads
-  use control_io, only: use_restart
+  use control_io, only: is_restart
   implicit none
 
   private
@@ -59,7 +59,7 @@ contains
     ! input is only read by io task
     if (mp_ioproc()) then
 
-       if (use_restart()) then
+       if (is_restart()) then
           write(stdout,*) 'Reading &sysinfo namelist from restart'
           read(resin,nml=sysinfo,iostat=ierr)
           if (ierr /= 0) call mp_error('Failure reading &sysinfo namelist',ierr)
@@ -83,11 +83,11 @@ contains
 
        ! initialize system storage
        call atoms_init(maxtypes)
-       call types_init(deftype)
+       call types_init(deftype,maxtypes)
        call cell_init
 
        if (trim(topofile) == 'internal') then
-          if (use_restart()) then
+          if (is_restart()) then
              write(stdout,*) 'Using internal topology from restart'
              topchannel = resin
           else
@@ -98,18 +98,21 @@ contains
           open(unit=topin, file=trim(topofile), form='formatted', &
                status='old', iostat=ierr)
           if (ierr /= 0) call mp_error('Failure opening topology file',ierr)
-          write(stdout,*) 'Using topology from file', trim(topofile)
+          write(stdout,*) 'Using topology from file: ', trim(topofile)
           topchannel = topin
        end if
 
        if (trim(geomfile) == 'internal') then
-          if (use_restart()) then
+          if (is_restart()) then
              write(stdout,*) 'Using internal geometry from restart'
              geochannel = resin
           else
              write(stdout,*) 'Using internal geometry from input'
              geochannel = stdin
           end if
+       else if ((trim(inputfmt) == 'xyz/xyz') .and. &
+            (trim(geomfile) == trim(topofile))) then
+          call mp_error('Topology and geometry must be different files',0)
        else
           open(unit=geoin, file=trim(geomfile), form='formatted', &
                status='old', iostat=ierr)
@@ -149,16 +152,21 @@ contains
     read(channel, fmt='(A)', iostat=ierr) line
     do i=1, natoms
        read(channel, fmt='(A)', iostat=ierr) line
+
+       ! split off label from the rest
        line = adjustl(line)
-       name = trim(line(1:16))
+       idx = index(line,' ')
+       if ((idx > 16) .or. (idx < 1)) idx = 16
+       name = line(1:idx)
+       line = line(idx+1:)
+
        thistype = set_type(i,name)
        if (thistype > ndeftypes) &
             call mp_error('Too many atom types. Increase ndeftypes.',thistype)
+
        call set_idx(i,i)
        call set_charge(i,defcharge(thistype))
        call set_mass(thistype,defmass(thistype))
-       idx = index(line,' ');
-       if (idx > 0) line = line(idx:)
        read(line,fmt=*,iostat=ierr) pos(1),pos(2),pos(3)
        if (ierr /= 0) &
             call mp_error('Failure to read coordinates from xyz file',ierr)
@@ -169,7 +177,7 @@ contains
   subroutine xyz_topology(channel)
     use atoms
     integer, intent(in) :: channel
-    integer :: i, ierr, natoms, thistype
+    integer :: i, idx, ierr, natoms, thistype
     character(len=255) :: line
     character(len=16) :: name
 
@@ -180,8 +188,14 @@ contains
     read(channel, fmt='(A)', iostat=ierr) line
     do i=1, natoms
        read(channel, fmt='(A)', iostat=ierr) line
+
+       ! split off label from the rest
        line = adjustl(line)
-       name = trim(line)
+       idx = index(line,' ')
+       if ((idx > 16) .or. (idx < 1)) idx = 16
+       name = line(1:idx)
+       line = line(idx+1:)
+
        thistype = set_type(i,name)
        if (thistype > ndeftypes) &
             call mp_error('Too many atom types. Increase ndeftypes.',thistype)

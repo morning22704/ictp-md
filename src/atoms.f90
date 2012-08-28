@@ -2,8 +2,10 @@
 module atoms
   use kinds
   use constants
+  use io, only: stdout
   use threading, only: thr_get_num_threads
   use message_passing, only: mp_error
+  use control_io, only: is_verbose
   implicit none
 
   private
@@ -70,7 +72,8 @@ contains
     end if
   end subroutine atoms_resize
 
-  subroutine types_init(typelist)
+  subroutine types_init(typelist,maxtypes)
+    integer, intent(in) :: maxtypes
     character(len=lblen), dimension(ndeftypes), intent(in) :: typelist
     character(len=lblen) :: name
     integer :: n, i, newtype
@@ -97,8 +100,11 @@ contains
                   &or increase maxtypes.',ntypes)
              newtype = ntypes
              lbl%v(newtype) = name
+             if (is_verbose()) write(stdout,fmt='(A,A,A,I3)') &
+                  ' Added new type: "', name, '" as type no: ',newtype
           end if
        end if
+       if (ntypes == maxtypes) exit
     end do
   end subroutine types_init
 
@@ -115,7 +121,7 @@ contains
        newtype = 0
     else
        do i=1,ntypes
-          if (name == lbl%v(i)) newtype = i
+          if (trim(name) == trim(lbl%v(i))) newtype = i
        end do
        if (newtype < 0) then
           ntypes = ntypes + 1
@@ -128,6 +134,9 @@ contains
     end if
     typ%v(id) = newtype
     set_type = newtype
+    if (is_verbose()) write(stdout,fmt='(A,I6,A,A,A,I3)') &
+         ' Set type of atom     ',id,' with label: "', trim(name), &
+         '" to no: ',newtype
   end function set_type
 
   subroutine set_idx(id,i)
@@ -138,6 +147,8 @@ contains
     if (i <= 0) call mp_error('Atom index must be > 0',i)
 
     idx%v(id) = i
+    if (is_verbose()) write(stdout,fmt='(A,I6,A,I6)') &
+         ' Set id of atom       ',id,' to no: ',i
   end subroutine set_idx
 
   subroutine set_pos(id,pos)
@@ -149,6 +160,8 @@ contains
     x_r%x(id) = pos(1)
     x_r%y(id) = pos(2)
     x_r%z(id) = pos(3)
+    if (is_verbose()) write(stdout,fmt='(A,I6,A,3F12.4)') &
+         ' Set position of atom ',id,' to : ',pos(1),pos(2),pos(3)
   end subroutine set_pos
 
   subroutine set_mass(id,mass)
@@ -160,6 +173,8 @@ contains
     if (mass <= d_zero) call mp_error('Mass must be > 0.0',id)
 
     mss%v(id) = mass
+    if (is_verbose()) write(stdout,fmt='(A,I6,A,F12.4)') &
+         ' Set mass of atom     ',id,' to : ',mass
   end subroutine set_mass
 
   subroutine set_charge(id,charge)
@@ -169,6 +184,8 @@ contains
     if (charge /= d_zero) then
        have_chg = .true.
        chg%v(id) = charge
+       if (is_verbose()) write(stdout,fmt='(A,I6,A,F12.4)') &
+            ' Set charge of atom   ',id,' to : ',charge
     end if
   end subroutine set_charge
 
