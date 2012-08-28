@@ -1,0 +1,110 @@
+
+/*! \page install Installation
+
+\addindex installation
+\tableofcontents
+
+\section prereq  Prerequisites
+
+\subsection prereq-must Required Tools
+
+A reasonably standard compliant Fortran 95 compiler is required.
+While the design of the program tries to incorporate object oriented
+programming design pattersn, the use of any Fortran language specifics
+that were introduced in the Fortran 2003 and Fortran 2008 standards
+were avoided in order to increase portability. 
+The however many features have been introduced with Fortran 90/95 are
+used extensively, so full compatibility with Fortran 95 is assumed.
+As of this writing GNU gfortran version 4.5.x and Intel ifort version 11.x
+were tested successfully and should be assumed to be the minimum requirements.
+
+The build system is based on using makefiles and uses features that
+are likely not available in other make programs than GNU make. 
+
+Perl 5 is required as well, since some perl scripts are run as part of
+the build procedure and to update a few files with compile time data.
+Also the bundled simple regression test tool uses perl.
+
+
+\subsection prereq-want Desirable Tools
+
+In order to benefit from multi-thread parallelization OpenMP 2.x support
+is needed in the Fortran compiler. The code will compile and run fine 
+without OpenMP, but then it will ignore the parallelization directives
+and run with only single-threaded.
+
+The code also supports (replicated data) message passing parallelization
+via MPI. Thus an  MPI library with Fortran 77 bindings is required to 
+parallelize over multiple nodes. The MPI library has to be compatible
+with  the  selected Fortran compiler. Only APIs from the MPI-1 standard
+are used and OpenMPI  (not to be confused with OpenMP) is highly recommended,
+but practically all available MPI libraries should work.
+
+
+\subsection prereq-opt Optional Tools
+
+To regenerate the documentation (e.g. in case you want to add code
+or improve it) you need Doxygen 1.8.x, PdfLatex and graphviz.
+
+Access to the development sources is provided via github.com, thus
+a git client is required to check out and update the sources.
+
+\section build_tools Tools used to develop ictp-md
+
+ICTP-MD was developed and tested under 32-bit and 64-bit
+x86 Linux using the following tools:
+<ul>
+<li>GCC gfortran version 4.7.x and 4.5.x
+<li>Intel ifort version 11.1
+<li>GNU make version 3.82
+<li>Perl version 5.12.x
+<li>Doxygen version 1.8.x
+<li>git 1.7.x
+</ul>
+
+*/
+
+
+2) Compilation
+
+Compilation is done via a platform specific makefile that includes a
+common makefile with generic rules for all platforms.
+
+a) Out-of-source compilation
+
+The build system  is set up to allow  compiling the code in  a directory
+different  from  where the sources  are.  This method  of compilation is
+highly recommended since  it  has  the  benefit  that  multiple variants
+(different  compiler  flags  settings,  debugging  enabled/disabled, MPI
+enabled/disabled,  or OpenMP enabled/disabled)  can be compiled from the
+same sources at the same time.
+  
+- Create  a directory at the top  level called  build-<my-config> (where
+<my-config> can be any text and change into this directory
+
+- Create a copy or symbolic link from one of the configuration templates
+in the config directory under the name Makefile
+
+- Adjust the compiler settings as needed
+
+- Run "make". This should automatically create dependencies, the version
+header file, compile all objects and then linke the executable.
+
+- Run "make doc" to generate the embedded documentation (optional)
+
+You can repeat the process for multiple configurations.
+
+b) In-source compilation
+
+This is also supported. The only difference to the out-of-source compile
+is that you have to copy or symlink or copy the Makefile into the source
+directory and then continue like before.
+
+3) Validation
+
+(to be added)
+
+------------------------------------------------------------------------
+Local Variables:
+mode: text
+End:
