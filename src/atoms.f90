@@ -70,6 +70,7 @@ contains
     else
        call mp_error('Changing "natoms" currently not supported',natoms)
     end if
+    natoms = size
   end subroutine atoms_resize
 
   subroutine types_init(typelist,maxtypes)
