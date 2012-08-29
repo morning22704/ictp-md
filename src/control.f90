@@ -7,6 +7,7 @@
 module control_io
   use constants
   use kinds
+  use io, only : stdout
   use message_passing, only: mp_ioproc, mp_bcast, mp_error
   implicit none
 
@@ -19,15 +20,15 @@ module control_io
   integer :: seq_no         !< Sequence number of run in trajectory
   real(kind=dp) :: max_time !< Maximal wall time for this run
   logical :: restart        !< Flag to trigger reading in a restart
-  logical :: verbose        !< Flag to trigger verbose output
+  logical :: debug          !< Flag to trigger debug output
   character(len=120) :: restfile !< Path to restart file
   character(len=120) :: prefix   !< Prefix
 
   namelist /control/ initial_step, current_step, last_step, run_step, &
-       seq_no, max_time, restart, verbose, restfile, prefix
+       seq_no, max_time, restart, debug, restfile, prefix
   
-  public :: control_init, control_read, control_print
-  public :: is_restart, is_verbose
+  public :: control_init, control_read, control_write
+  public :: is_restart, is_debug
 !  public :: get_step
 
 contains
@@ -44,7 +45,7 @@ contains
     seq_no       = -1
     max_time     = -d_one
     restart      = .false.
-    verbose      = .true.
+    debug      = .true.
     restfile     = 'unknown'
     prefix       = 'mdrun'
     call adjust_mem(6*sp+dp+2*sp+2*(120+sp)) ! global memory use of module
@@ -59,11 +60,11 @@ contains
   !! different, i.e. the restart is read in first and then the
   !! settings in the input file can override the restart settings.
   subroutine control_read
-    use io, only : stdin, stdout, resin
+    use io, only : stdin, resin
     use memory, only : memory_print
     integer :: ierr
     integer :: tmp_initial, tmp_current, tmp_last, tmp_run, tmp_seq
-    logical :: tmp_verbose
+    logical :: tmp_debug
     real(kind=dp) :: tmp_max
 
     ! input is only read by io task
@@ -83,7 +84,7 @@ contains
           tmp_run     = run_step
           tmp_max     = max_time
           tmp_seq     = seq_no
-          tmp_verbose = verbose
+          tmp_debug = debug
 
           if (trim(restfile) == 'unknown') then
              call mp_error('Set "restfile" to name of restart file',15)
@@ -108,7 +109,7 @@ contains
           if (tmp_max >= d_zero) max_time     = tmp_max
           if (tmp_seq >= 0)      seq_no       = tmp_seq
           restart = .true.
-          verbose = tmp_verbose
+          debug = tmp_debug
           if (current_step < initial_step) &
                call mp_error('current_step must be larger than initial_step',1)
        endif
@@ -132,7 +133,7 @@ contains
     ! broadcast info that is needed on all processes
     call mp_bcast(current_step)
     call mp_bcast(end_step)
-    call mp_bcast(verbose)
+    call mp_bcast(debug)
   end subroutine control_read
 
   !> Flag if input data is to be read from a restart
@@ -142,21 +143,21 @@ contains
     is_restart = restart
   end function is_restart
 
-  !> Flag if verbose output is requested
-  !! @returns True if we need to be verbose
-  function is_verbose()
-    logical is_verbose
-    is_verbose = verbose
-  end function is_verbose
+  !> Flag if debug output is requested
+  !! @returns True if we need to be debug
+  function is_debug()
+    logical is_debug
+    is_debug = debug
+  end function is_debug
 
   !> Print run information from control module
   subroutine control_print
-    use io, only : stdout, separator
+    use io, only : separator
 
     if (mp_ioproc()) then
        write(stdout,*) separator
        write(stdout,*) 'Trajectory name prefix: ', trim(prefix)
-       if (verbose) write(stdout,*) 'Verbose output is requested '
+       if (debug) write(stdout,*) 'Debug output is requested '
        if (restart) write(stdout,*) 'Restart read from file: ', trim(restfile)
        write(stdout,*) 'Trajectory begins at step:   ', initial_step
        if (last_step > 0) &
@@ -170,13 +171,31 @@ contains
 
   !> Write restart info for control module
   !! @param channel I/O channel of restart writing unit
-  subroutine control_restart(channel)
-    integer, intent(in) :: channel
+  subroutine control_write(level)
+    use io, only: resout
+    integer, intent(in) :: level
     integer :: ierr
+    logical :: tmp_restart
+    character(len=255) :: filename
 
+    tmp_restart = restart
     restart = .false.
+
+    if (level > 0) then
+       write(filename,fmt='(A,A,I1)') trim(prefix), '.restart.', level
+    else 
+       write(filename,fmt='(A,A)') trim(prefix), '.restart'
+    end if
+
     if (mp_ioproc()) then
-       write(unit=channel,nml=control,iostat=ierr)
+       open(unit=resout, file=TRIM(filename), form='formatted', &
+            access='sequential', action='write', status='unknown', iostat=ierr)
+       if (ierr /= 0) call mp_error('Failure opening restart file',ierr)
+
+       write(stdout,*) 'Writing &control namelist from restart'
+       write(unit=resout, nml=control, iostat=ierr)
+       if (ierr /= 0) call mp_error('Failure writing &control restart',ierr)
     endif
-  end subroutine control_restart
+    restart = tmp_restart
+  end subroutine control_write
 end module control_io

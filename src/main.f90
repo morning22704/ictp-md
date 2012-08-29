@@ -39,7 +39,7 @@ end subroutine basic_setup
 !! elaborate infrastructure, as would be needed for absolute best
 !! performance and scaling. Simplicity and maintainability are preferred.
 !!
-!! Ye, who enter here, beware of dragons.
+!! Ye, who enters here, beware of dragons.
 program ictp_md
   use message_passing, only : mp_finish
   use input
@@ -50,6 +50,9 @@ program ictp_md
 
   ! read system settings from input
   call input_read
+
+  ! write out a restart file
+  call input_write(-1)
 
   ! finish off
   call mp_finish

@@ -19,12 +19,12 @@ module sysinfo_io
   real(kind=dp), dimension(ndeftypes) :: defmass, defcharge
   character(len=16), dimension(ndeftypes) :: deftype
   character(len=8) :: inputfmt
-  character(len=255) :: topofile, geomfile
+  character(len=255) :: topfile, posfile, velfile
 
   namelist /sysinfo/ maxtypes, cellparam, defmass, defcharge, deftype, &
-       inputfmt, topofile, geomfile
+       inputfmt, topfile, posfile, velfile
 
-  public :: sysinfo_init, sysinfo_read
+  public :: sysinfo_init, sysinfo_read, sysinfo_write
 
 contains
 
@@ -43,9 +43,10 @@ contains
     call adjust_mem(ndeftypes*lblen)
     inputfmt = 'unknown'
     call adjust_mem(8+sp)
-    topofile = 'unknown'
-    geomfile = 'unknown'
-    call adjust_mem(2*(255+sp))
+    topfile = 'unknown'
+    posfile = 'unknown'
+    velfile = 'unknown'
+    call adjust_mem(3*(255+sp))
   end subroutine sysinfo_init
   
   ! read sysinfo parameters
@@ -54,7 +55,7 @@ contains
     use atoms, only: atoms_init, atoms_replicate, types_init
     use cell, only: cell_init
     use memory, only: alloc_vec, clear_vec
-    integer :: ierr, topchannel, geochannel
+    integer :: ierr, topchannel, poschannel, velchannel
 
     ! input is only read by io task
     if (mp_ioproc()) then
@@ -74,9 +75,10 @@ contains
 
        write(stdout,*) separator
        write(stdout,*) 'Max. number of atom types: ', maxtypes
-       write(stdout,*) 'System info format: ', trim(inputfmt)
-       write(stdout,*) 'Topology read from: ', trim(topofile)
-       write(stdout,*) 'Geometry read from: ', trim(geomfile)
+       write(stdout,*) 'System info format   : ', trim(inputfmt)
+       write(stdout,*) 'Topology read from   : ', trim(topfile)
+       write(stdout,*) 'Positions read from  : ', trim(posfile)
+       write(stdout,*) 'Velocities read from : ', trim(velfile)
        write(stdout,*) separator
        write(stdout,nml=sysinfo)
        write(stdout,*) separator
@@ -86,7 +88,7 @@ contains
        call types_init(deftype,maxtypes)
        call cell_init
 
-       if (trim(topofile) == 'internal') then
+       if (trim(topfile) == 'internal') then
           if (is_restart()) then
              write(stdout,*) 'Using internal topology from restart'
              topchannel = resin
@@ -95,41 +97,42 @@ contains
              topchannel = stdin
           end if
        else
-          open(unit=topin, file=trim(topofile), form='formatted', &
+          open(unit=topin, file=trim(topfile), form='formatted', &
                status='old', iostat=ierr)
           if (ierr /= 0) call mp_error('Failure opening topology file',ierr)
-          write(stdout,*) 'Using topology from file: ', trim(topofile)
+          write(stdout,*) 'Using topology from file: ', trim(topfile)
           topchannel = topin
        end if
 
-       if (trim(geomfile) == 'internal') then
+       if (trim(posfile) == 'internal') then
           if (is_restart()) then
              write(stdout,*) 'Using internal geometry from restart'
-             geochannel = resin
+             poschannel = resin
           else
              write(stdout,*) 'Using internal geometry from input'
-             geochannel = stdin
+             poschannel = stdin
           end if
        else if ((trim(inputfmt) == 'xyz/xyz') .and. &
-            (trim(geomfile) == trim(topofile))) then
+            (trim(posfile) == trim(topfile))) then
           call mp_error('Topology and geometry must be different files',0)
        else
-          open(unit=geoin, file=trim(geomfile), form='formatted', &
+          open(unit=geoin, file=trim(posfile), form='formatted', &
                status='old', iostat=ierr)
           if (ierr /= 0) call mp_error('Failure opening geometry file',ierr)
-          write(stdout,*) 'Using geometry from file', trim(geomfile)
-          geochannel = geoin
+          write(stdout,*) 'Using geometry from file', trim(posfile)
+          poschannel = geoin
        end if
 
        if (trim(inputfmt) == 'lammps') then
+          call mp_error('LAMMPS input format currently unsupported',ierr)
        else if (trim(inputfmt) == 'xyz') then
           call xyz_topogeom(topchannel)
           if (topchannel == topin) close (unit=topin)
        else if (trim(inputfmt) == 'xyz/xyz') then
           call xyz_topology(topchannel)
           if (topchannel == topin) close (unit=topin)
-          call xyz_geometry(geochannel)
-          if (geochannel == geoin) close (unit=geoin)
+          call xyz_geometry(poschannel)
+          if (poschannel == geoin) close (unit=geoin)
        else if (trim(inputfmt) == 'psf/xyz') then
        else
           call mp_error('Unknown or unsupported input data format',ierr)
@@ -232,4 +235,50 @@ contains
        call set_pos(i,pos)
     end do
   end subroutine xyz_geometry
+
+  ! write sysinfo parameters
+  subroutine sysinfo_write
+    use io
+    use atoms, only: is_vel, xyz_write
+!    use cell, only: cell_write
+!    use memory, only: alloc_vec, clear_vec
+    integer :: ierr
+    character(len=255) :: tmp_topfile, tmp_posfile, tmp_velfile
+
+    ! restart is only written by io task
+    if (mp_ioproc()) then
+       tmp_topfile=topfile
+       tmp_posfile=posfile
+       tmp_velfile=velfile
+       topfile='internal'
+       posfile='internal'
+       if (is_vel()) then
+          velfile='internal'
+       else
+          velfile='unknown'
+       end if
+       write(stdout,*) 'Writing &sysinfo namelist to restart'
+       write(resout,nml=sysinfo,iostat=ierr)
+       if (ierr /= 0) call mp_error('Failure writing &sysinfo namelist',ierr)
+
+       if (trim(inputfmt) == 'lammps') then
+          call mp_error('LAMMPS input format currently unsupported',ierr)
+       else if (trim(inputfmt) == 'xyz') then
+          call xyz_write(resout,'pos')
+          if (is_vel()) call xyz_write(resout,'vel')
+       else if (trim(inputfmt) == 'xyz/xyz') then
+          call xyz_write(resout,'pos')
+          call xyz_write(resout,'pos')
+          if (is_vel()) call xyz_write(resout,'vel')
+       else if (trim(inputfmt) == 'psf/xyz') then
+       else
+          call mp_error('Unknown or unsupported input data format',ierr)
+       end if
+
+       topfile=tmp_topfile
+       posfile=tmp_posfile
+       velfile=tmp_velfile
+    end if
+  end subroutine sysinfo_write
+
 end module sysinfo_io
