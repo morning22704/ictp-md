@@ -12,7 +12,7 @@ module io
   integer, parameter :: stdout = 6  !< predefined channel for console output
   integer, parameter :: stderr = 0  !< predefined channel for error output
   integer, parameter :: resin  = 15 !< channel to be used for reading restarts
-  integer, parameter :: resout = 16 !< channel to be used for writing restarts 
+  integer, parameter :: resout = 16 !< channel to be used for writing restarts
   integer, parameter :: topin  = 25 !< channel to be used for reading topologies
   integer, parameter :: topout = 26 !< channel to be used for writing topologies
   integer, parameter :: geoin  = 35 !< channel to be used for reading geometries
@@ -20,5 +20,5 @@ module io
   !> string constant for separator lines
   character(len=55), parameter :: &
     separator = '-------------------------------------------------------'
- 
+
 end module io

@@ -21,7 +21,7 @@ contains
 
   !> Initialize thread support and the threading module.
   !!
-  !! Determine the total number of threads available and 
+  !! Determine the total number of threads available and
   !! store it in a module variable, which defaults to 1,
   !! if compiled OpenMP support is not available or included.
   subroutine thr_init

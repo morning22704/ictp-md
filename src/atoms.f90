@@ -54,7 +54,7 @@ contains
     call alloc_vec(mss,maxtypes)
     call alloc_vec(lbl,maxtypes)
   end subroutine atoms_init
-  
+
   subroutine atoms_resize(size)
     use memory, only: alloc_vec
     integer, intent(in) :: size
@@ -171,7 +171,7 @@ contains
   subroutine set_pos(id,pos)
     integer, intent(in) :: id
     real(kind=dp), dimension(3), intent(in) :: pos
-    
+
     have_pos = .true.
     valid_x_s = .false.
     x_r%x(id) = pos(1)
@@ -184,7 +184,7 @@ contains
   subroutine set_vel(id,vel)
     integer, intent(in) :: id
     real(kind=dp), dimension(3), intent(in) :: vel
-    
+
     have_vel = .true.
     x_r%x(id) = vel(1)
     x_r%y(id) = vel(2)
@@ -209,7 +209,7 @@ contains
   subroutine set_charge(id,charge)
     integer, intent(in) :: id
     real(kind=dp), intent(in) :: charge
-    
+
     if (charge /= d_zero) then
        have_chg = .true.
        chg%v(id) = charge
@@ -223,25 +223,25 @@ contains
 
     get_ntypes = ntypes
   end function get_ntypes
-  
+
   function get_natoms()
     integer :: get_natoms
 
     get_natoms = natoms
   end function get_natoms
-  
+
   function is_chg()
     logical :: is_chg
 
     is_chg = have_chg
   end function is_chg
-  
+
   function is_pos()
     logical :: is_pos
 
     is_pos = have_pos
   end function is_pos
-  
+
   function is_vel()
     logical :: is_vel
 

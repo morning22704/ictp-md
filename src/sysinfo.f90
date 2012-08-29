@@ -1,6 +1,6 @@
 !
-! FIXME: add documentation section here that documents the 
-! entire &sysinfo section, but shows up in the user's guide 
+! FIXME: add documentation section here that documents the
+! entire &sysinfo section, but shows up in the user's guide
 ! parts, not the developer's reference
 
 !> Module to manage data of the current system
@@ -48,7 +48,7 @@ contains
     velfile = 'unknown'
     call adjust_mem(3*(255+sp))
   end subroutine sysinfo_init
-  
+
   ! read sysinfo parameters
   subroutine sysinfo_read
     use io
@@ -154,7 +154,7 @@ contains
     read(channel, fmt=*, iostat=ierr) natoms
     if (ierr /= 0) call mp_error('Failure to read "natoms" from xyz file',ierr)
     call atoms_resize(natoms)
-    
+
     read(channel, fmt='(A)', iostat=ierr) line
     do i=1, natoms
        read(channel, fmt='(A)', iostat=ierr) line
@@ -190,7 +190,7 @@ contains
     read(channel, fmt=*, iostat=ierr) natoms
     if (ierr /= 0) call mp_error('Failure to read "natoms" from xyz file',ierr)
     call atoms_resize(natoms)
-    
+
     read(channel, fmt='(A)', iostat=ierr) line
     do i=1, natoms
        read(channel, fmt='(A)', iostat=ierr) line

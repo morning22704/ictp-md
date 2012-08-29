@@ -1,4 +1,4 @@
-! module with custom memory related operations, allocator, and deallocators 
+! module with custom memory related operations, allocator, and deallocators
 module memory
   use kinds
   use constants

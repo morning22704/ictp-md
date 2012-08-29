@@ -4,7 +4,7 @@
 !! This subroutine collects all basic setup tasks that need
 !! to be performed before the input file is read. This includes
 !! parallel setup, internal timing and memory profiling and
-!! printing the generic program banner. 
+!! printing the generic program banner.
 subroutine basic_setup
   use header
   ! use timer
@@ -20,7 +20,7 @@ subroutine basic_setup
   call mp_init
   call thr_init
 
-  ! print banners 
+  ! print banners
   if (mp_ioproc()) then
      call version
      call mp_header

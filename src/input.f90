@@ -2,14 +2,14 @@
 !!
 !! This module actually does not do the real reading, but initializes
 !! and calls the corresponding modules that handle the various logical
-!! groups of data I/O. 
+!! groups of data I/O.
 module input
   use control_io
   use sysinfo_io
   implicit none
 
   private
-  logical, save :: need_init = .true. !< Flag whether to run initializers 
+  logical, save :: need_init = .true. !< Flag whether to run initializers
   public :: input_read, input_write
 
 contains

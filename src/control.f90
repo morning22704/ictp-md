@@ -1,6 +1,6 @@
 !
-! FIXME: add documentation section here that documents the 
-! entire &control section, but shows up in the user's guide 
+! FIXME: add documentation section here that documents the
+! entire &control section, but shows up in the user's guide
 ! parts, not the developer's reference
 
 !> Module to control basic simulation parameters
@@ -26,7 +26,7 @@ module control_io
 
   namelist /control/ initial_step, current_step, last_step, run_step, &
        seq_no, max_time, restart, debug, restfile, prefix
-  
+
   public :: control_init, control_read, control_write
   public :: is_restart, is_debug
 !  public :: get_step
@@ -50,7 +50,7 @@ contains
     prefix       = 'mdrun'
     call adjust_mem(6*sp+dp+2*sp+2*(120+sp)) ! global memory use of module
   end subroutine control_init
-  
+
   !> Read &control namelist
   !!
   !! The &control namelist is the first namelist to be read in
@@ -183,7 +183,7 @@ contains
 
     if (level > 0) then
        write(filename,fmt='(A,A,I1)') trim(prefix), '.restart.', level
-    else 
+    else
        write(filename,fmt='(A,A)') trim(prefix), '.restart'
     end if
 

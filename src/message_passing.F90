@@ -3,7 +3,7 @@
 !! Rather than using calls directly to the message passing
 !! library, we provide an abstract interface with adaptations
 !! to specific data types of the application. This should also
-!! make transparent to the rest of the application whether 
+!! make transparent to the rest of the application whether
 !! message passing support is compiled in or not.
 module message_passing
 
@@ -68,7 +68,7 @@ contains
   subroutine mp_header
     use io, only : stdout,separator
 
-#if defined(_USE_MPI)    
+#if defined(_USE_MPI)
     write(stdout,*) 'Number of message passing processes :    ', nprocs
 #else
     write(stdout,*) 'Message passing not enabled in this build'
