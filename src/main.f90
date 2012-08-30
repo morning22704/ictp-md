@@ -43,6 +43,7 @@ end subroutine basic_setup
 program ictp_md
   use message_passing, only : mp_finish
   use input
+  use restart
   implicit none
 
   ! perform general setup tasks
@@ -52,7 +53,7 @@ program ictp_md
   call input_read
 
   ! write out a restart file
-  call input_write(-1)
+  call restart_write(-1)
 
   ! finish off
   call mp_finish

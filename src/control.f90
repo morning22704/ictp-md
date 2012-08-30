@@ -45,7 +45,7 @@ contains
     seq_no       = -1
     max_time     = -d_one
     restart      = .false.
-    debug      = .true.
+    debug        = .false.
     restfile     = 'unknown'
     prefix       = 'mdrun'
     call adjust_mem(6*sp+dp+2*sp+2*(120+sp)) ! global memory use of module
@@ -188,11 +188,12 @@ contains
     end if
 
     if (mp_ioproc()) then
-       open(unit=resout, file=TRIM(filename), form='formatted', &
+       write(stdout,*) 'Writing restart to file: ', trim(filename)
+       open(unit=resout, file=trim(filename), form='formatted', &
             access='sequential', action='write', status='unknown', iostat=ierr)
        if (ierr /= 0) call mp_error('Failure opening restart file',ierr)
 
-       write(stdout,*) 'Writing &control namelist from restart'
+       write(stdout,*) 'Writing &control namelist to restart'
        write(unit=resout, nml=control, iostat=ierr)
        if (ierr /= 0) call mp_error('Failure writing &control restart',ierr)
     endif

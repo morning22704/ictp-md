@@ -10,7 +10,7 @@ module input
 
   private
   logical, save :: need_init = .true. !< Flag whether to run initializers
-  public :: input_read, input_write
+  public :: input_read
 
 contains
 
@@ -28,14 +28,5 @@ contains
     call control_read
     call sysinfo_read
   end subroutine input_read
-
-  !> Write combined input information to a restart file
-  subroutine input_write(level)
-    use io, only : resout
-    integer, intent(in) :: level
-    call control_write(level)
-    call sysinfo_write
-    close(resout)
-  end subroutine input_write
 
 end module input
