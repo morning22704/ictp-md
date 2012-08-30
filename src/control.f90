@@ -170,7 +170,7 @@ contains
   end subroutine control_print
 
   !> Write restart info for control module
-  !! @param channel I/O channel of restart writing unit
+  !! @param level Restart level. A number between 0 and 9
   subroutine control_write(level)
     use io, only: resout
     integer, intent(in) :: level
@@ -198,4 +198,5 @@ contains
     endif
     restart = tmp_restart
   end subroutine control_write
+
 end module control_io
