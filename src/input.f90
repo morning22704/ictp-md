@@ -6,6 +6,7 @@
 module input
   use control_io
   use sysinfo_io
+  use pair_io
   implicit none
 
   private
@@ -27,6 +28,7 @@ contains
     if (need_init) call input_init
     call control_read
     call sysinfo_read
+    call pair_read
   end subroutine input_read
 
 end module input

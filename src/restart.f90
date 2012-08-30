@@ -6,6 +6,7 @@
 module restart
   use control_io
   use sysinfo_io
+  use pair_io
   implicit none
 
   private
@@ -49,6 +50,7 @@ contains
     end if
     call control_write(reslevel)
     call sysinfo_write
+    call pair_write
     close(resout)
   end subroutine restart_write
 
