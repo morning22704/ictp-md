@@ -13,7 +13,7 @@ While the design of the program tries to incorporate object oriented
 programming design pattersn, the use of any Fortran language specifics
 that were introduced in the Fortran 2003 and Fortran 2008 standards
 were avoided in order to increase portability. 
-The however many features have been introduced with Fortran 90/95 are
+However many new features introduced with Fortran 90/95 are
 used extensively, so full compatibility with Fortran 95 is assumed.
 As of this writing GNU gfortran version 4.5.x and Intel ifort version 11.x
 were tested successfully and should be assumed to be the minimum requirements.

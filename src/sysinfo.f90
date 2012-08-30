@@ -54,7 +54,7 @@ contains
     use io
     use atoms, only: atoms_init, atoms_replicate, types_init
     use cell, only: cell_init
-    use memory, only: alloc_vec, clear_vec
+    use memory, only: alloc_vec, clear_vec, memory_print
     integer :: ierr, topchannel, poschannel, velchannel
 
     ! input is only read by io task
@@ -79,8 +79,6 @@ contains
        write(stdout,*) 'Topology read from   : ', trim(topfile)
        write(stdout,*) 'Positions read from  : ', trim(posfile)
        write(stdout,*) 'Velocities read from : ', trim(velfile)
-       write(stdout,*) separator
-       write(stdout,nml=sysinfo)
        write(stdout,*) separator
 
        ! initialize system storage
@@ -119,7 +117,7 @@ contains
           open(unit=geoin, file=trim(posfile), form='formatted', &
                status='old', iostat=ierr)
           if (ierr /= 0) call mp_error('Failure opening geometry file',ierr)
-          write(stdout,*) 'Using geometry from file', trim(posfile)
+          write(stdout,*) 'Using geometry from file: ', trim(posfile)
           poschannel = geoin
        end if
 
@@ -137,10 +135,13 @@ contains
        else
           call mp_error('Unknown or unsupported input data format',ierr)
        end if
+       write(stdout,*) separator
+       call memory_print
     end if ! mp_ioproc()
 
     call atoms_replicate(maxtypes)
     ! call cell_replicate
+
   end subroutine sysinfo_read
 
   subroutine xyz_topogeom(channel)
