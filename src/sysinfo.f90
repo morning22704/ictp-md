@@ -67,7 +67,8 @@ contains
        end if
        write(stdout,*) 'Reading &sysinfo namelist from input'
        read(stdin,nml=sysinfo,iostat=ierr)
-       if (ierr /= 0) call mp_error('Failure reading &sysinfo namelist',ierr)
+       if (ierr /= 0) &
+            call mp_error('Failure reading &sysinfo namelist',ierr)
 
        if (maxtypes < 1) then
           call mp_error('Parameter maxtypes must be > 0',ierr)
