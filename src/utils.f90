@@ -19,8 +19,6 @@ contains
   function is_section_end(string)
     logical is_section_end
     character(len=*), intent(in) :: string
-    integer :: ierr, i, char1, char2
-    logical :: not_found
 
     is_section_end = .false.
     if (trim(string) == '/') is_section_end = .true.
