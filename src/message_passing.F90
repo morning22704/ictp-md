@@ -8,7 +8,7 @@
 module message_passing
 
   use kinds
-  use memory, only: adjust_mem, alloc_vec, free_vec
+  use memory, only: adjust_mem, alloc_vec, free_vec, alloc_mat, free_mat
   implicit none
 
   private
