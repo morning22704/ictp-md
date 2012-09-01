@@ -7,44 +7,61 @@ module pair_io
   use kinds
   use constants
   use message_passing, only : mp_error, mp_ioproc, mp_bcast
+  use pair_lj_cut
   implicit none
 
   private
-  logical, save :: need_init = .true. !< Flag whether to run initializers
   real(kind=dp) :: cutoff_pair !< Global cutoff for pairwise interactions
   real(kind=dp) :: cutoff_coul !< Global cutoff for coulomb interactions
   real(kind=dp) :: cutoff_max  !< Largest pairwise cutoff overall
   logical       :: shift_pot   !< Shift potential to be 0 at cutoff
+  logical       :: do_coulomb  !< Calculate coulomb interactions
   character(len=lblen) :: pair_style !< String indicating the type of potential
+  character(len=lblen) :: coul_style !< String indicating the type of potential
   
-  public :: pair_read, pair_write
-  namelist /pair/ cutoff_pair, cutoff_coul, shift_pot, pair_style
+  public :: pair_init, pair_read, pair_write
+  namelist /pair/ cutoff_pair, cutoff_coul, shift_pot, do_coulomb, &
+       pair_style, coul_style
 
 contains
 
-  !> Initialize submodules
+  !> Initialize module and submodules
   subroutine pair_init
+    use io, only: stdout,separator
+    use memory, only: adjust_mem
 
     cutoff_pair = -d_one
     cutoff_coul = -d_one
     cutoff_max  = -d_one
+    call adjust_mem(3*dp)
     shift_pot   = .false.
+    do_coulomb  = .false.
+    call adjust_mem(2*sp)
     pair_style  = 'unknown'
-    need_init = .false.
+    coul_style  = 'unknown'
+    call adjust_mem(2*lblen)
+ 
+    call pair_lj_cut_init
+    write(stdout,*) separator
   end subroutine pair_init
-
+ 
   !> Read input 
   subroutine pair_read
     use io
     use control_io, only : is_restart
-    use atoms, only : is_chg
+    use atoms, only : is_chg, get_ntypes
     use memory, only : memory_print
-    integer :: ierr
-
-    if (need_init) call pair_init
+    integer :: ierr, ntypes
 
     ! input is only read by io task
     if (mp_ioproc()) then
+
+       ntypes = get_ntypes()
+       if (is_chg()) then
+          ! make default for coulomb calculation depend
+          ! on whether we have charges in the system
+          do_coulomb = .true.
+       end if
 
        if (is_restart()) then
           write(stdout,*) 'Reading &pair namelist from restart'
@@ -62,40 +79,69 @@ contains
             call mp_error('Pair style must be set',1)
 
        cutoff_max = cutoff_pair
-       if (is_chg() .and. (cutoff_coul > cutoff_max)) cutoff_max = cutoff_coul
+       ! coulomb specific checks
+       if (do_coulomb) then
+          if (cutoff_coul < d_zero) &
+            call mp_error('Global coulomb cutoff must be set',1)
+          if (trim(coul_style) == 'unknown') &
+               call mp_error('Coulomb style must be set',1)
+          if (cutoff_coul > cutoff_max) cutoff_max = cutoff_coul
+       end if
 
        write(stdout,*) separator
-       write(stdout,*) 'Pair style: ', trim(pair_style)
+       write(stdout,*) 'Pair style            : ', trim(pair_style)
        write(stdout,*) 'Global pair cutoff    : ', cutoff_pair
-       if (is_chg()) &
-            write(stdout,*) 'Global coulomb cutoff : ', cutoff_coul
+       if (do_coulomb) then
+          write(stdout,*) 'Coulomb style         : ', trim(coul_style)
+          write(stdout,*) 'Global coulomb cutoff : ', cutoff_coul
+       end if
        write(stdout,*) 'Maximal global cutoff : ', cutoff_max
 
        if (shift_pot) then
-          write(stdout,*) 'Potential shifted to zero at cutoff'
+          write(stdout,*) 'Pair potential shifted to zero at cutoff'
        else
-          write(stdout,*) 'Unshifted potential'
+          write(stdout,*) 'Unshifted pair potential'
        end if
 
        write(stdout,*) separator
        call memory_print
+
     end if
 
     call mp_bcast(cutoff_pair)
     call mp_bcast(cutoff_coul)
     call mp_bcast(cutoff_max)
+    call mp_bcast(shift_pot)
+    call mp_bcast(do_coulomb)
+    call mp_bcast(pair_style)
+    call mp_bcast(coul_style)
+
+    if (trim(pair_style) == 'lj/cut') then
+       call pair_lj_cut_read(ntypes,cutoff_pair)
+    else 
+       call mp_error('Unsupported pair style',1)
+    end if
 
   end subroutine pair_read
 
   !> Write info for pair module
   subroutine pair_write
     use io, only: resout, stdout
-    integer :: ierr
+    use atoms, only: get_ntypes
+    integer :: ierr,ntypes
 
+    ntypes = get_ntypes()
     if (mp_ioproc()) then
        write(stdout,*) 'Writing &pair namelist to restart'
        write(unit=resout, nml=pair, iostat=ierr)
        if (ierr /= 0) call mp_error('Failure writing &pair restart',ierr)
+       
+    if (trim(pair_style) == 'lj/cut') then
+       call pair_lj_cut_write(resout,ntypes)
+    else 
+       call mp_error('Unsupported pair style',1)
+    end if
+
     endif
   end subroutine pair_write
 

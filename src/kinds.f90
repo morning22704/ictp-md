@@ -7,6 +7,7 @@ module kinds
   integer, parameter :: dp = selected_real_kind(14,200) !< regular 8 byte real
 
   integer, parameter :: lblen = 16  !< length of atom/type label strings
+  integer, parameter :: lilen = 252 !< length of line/file strings
 
   !> Derived data type to hold a 3-tuple flo vector with associated size
   type xyz_vec
@@ -33,5 +34,17 @@ module kinds
      character(len=lblen), pointer :: v(:) !< data vector
      integer :: size                       !< length of data vector
   end type label_vec
+
+  !> Derived data type to hold a floating point matrix with associated size
+  type dp_mat
+     real(kind=dp), pointer :: m(:,:) !< data matrix
+     integer :: sizex, sizey          !< dimensions of data matrix
+  end type dp_mat
+
+  !> Derived data type to hold a singe integer matrix with associated size
+  type int_mat
+     integer, pointer :: m(:,:) !< data matrix
+     integer :: sizex, sizey    !< dimensions of data matrix
+  end type int_mat
 
 end module kinds

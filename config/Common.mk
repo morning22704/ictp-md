@@ -6,9 +6,9 @@ VERSION=08-2012
 EXE=$(NAME).x
 DOC=../$(NAME)-manual.pdf
 # sources w/o preprocessing
-SRC=main.f90 io.f90 kinds.f90 constants.f90 memory.f90 threading.f90 \
+SRC=main.f90 io.f90 kinds.f90 constants.f90 memory.f90 threading.f90 utils.f90 \
 	input.f90 restart.f90 control.f90 sysinfo.f90 atoms.f90 cell.f90 \
-	pair.f90
+	pair.f90 pair_lj_cut.f90
 # sources requiring preprocessing
 PPS=message_passing.F90
 # all objects

@@ -10,8 +10,7 @@ module input
   implicit none
 
   private
-  logical, save :: need_init = .true. !< Flag whether to run initializers
-  public :: input_read
+  public :: input_init, input_read
 
 contains
 
@@ -19,13 +18,11 @@ contains
   subroutine input_init
     call control_init
     call sysinfo_init
-    need_init = .false.
+    call pair_init
   end subroutine input_init
 
   !> Read input and restart information from all submodules
   subroutine input_read
-
-    if (need_init) call input_init
     call control_read
     call sysinfo_read
     call pair_read

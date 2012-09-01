@@ -25,9 +25,12 @@ module message_passing
      module procedure bcast_int
      module procedure bcast_dp
      module procedure bcast_log
+     module procedure bcast_string
      module procedure bcast_xyz_vec
      module procedure bcast_dp_vec
      module procedure bcast_int_vec
+     module procedure bcast_dp_mat
+     module procedure bcast_int_mat
   end interface
 
 contains
@@ -134,6 +137,17 @@ contains
 #endif
   end subroutine bcast_log
 
+  subroutine bcast_string(val)
+    implicit none
+    character(len=*), intent(inout) :: val
+#if defined(_USE_MPI)
+    integer :: ierr
+    include 'mpif.h'
+
+    call mpi_bcast(val,len(val),MPI_CHARACTER,ioproc,comm,ierr)
+#endif
+  end subroutine bcast_string
+
   subroutine bcast_xyz_vec(val)
     implicit none
     type(xyz_vec), intent(inout) :: val
@@ -194,5 +208,46 @@ contains
          ioproc,comm,ierr)
 #endif
   end subroutine bcast_int_vec
+
+  subroutine bcast_dp_mat(val)
+    implicit none
+    type(dp_mat), intent(inout) :: val
+#if defined(_USE_MPI)
+    integer :: ierr, newsize(2)
+    include 'mpif.h'
+
+    newsize(1) = val%sizex
+    newsize(2) = val%sizey
+    call mpi_bcast(newsize,2,MPI_INTEGER,ioproc,comm,ierr)
+
+    if (myrank /= ioproc) then
+       call free_mat(val)
+       call alloc_mat(val,newsize(1),newsize(2))
+    end if
+    call mpi_bcast(val%m,val%sizex*val%sizey,MPI_DOUBLE_PRECISION,&
+         ioproc,comm,ierr)
+#endif
+  end subroutine bcast_dp_mat
+
+  subroutine bcast_int_mat(val)
+    implicit none
+    type(int_mat), intent(inout) :: val
+#if defined(_USE_MPI)
+    integer :: ierr, newsize(2)
+    include 'mpif.h'
+
+    newsize(1) = val%sizex
+    newsize(2) = val%sizey
+    call mpi_bcast(newsize,2,MPI_INTEGER,ioproc,comm,ierr)
+
+    if (myrank /= ioproc) then
+       call free_mat(val)
+       call alloc_mat(val,newsize(1),newsize(2))
+    end if
+    call mpi_bcast(val%m,val%sizex*val%sizey,MPI_INTEGER,&
+         ioproc,comm,ierr)
+#endif
+  end subroutine bcast_int_mat
+
 
 end module message_passing

@@ -9,6 +9,7 @@ subroutine basic_setup
   use header
   ! use timer
   use memory, only : memory_init, memory_print
+  use utils, only: utils_init
   ! parallel programming modules
   use message_passing, only : mp_init, mp_header, mp_ioproc
   use threading, only : thr_init, thr_header
@@ -19,6 +20,7 @@ subroutine basic_setup
   call memory_init
   call mp_init
   call thr_init
+  call utils_init
 
   ! print banners
   if (mp_ioproc()) then
@@ -48,6 +50,10 @@ program ictp_md
 
   ! perform general setup tasks
   call basic_setup
+
+  ! run initializers
+  call input_init
+  call restart_init
 
   ! read system settings from input
   call input_read

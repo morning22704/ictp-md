@@ -10,17 +10,15 @@ module restart
   implicit none
 
   private
-  logical, save :: need_init = .true. !< Flag whether to run initializers
   integer :: num_restarts, last_restart_no
-  public :: restart_write, set_num_restarts
+  public :: restart_init, restart_write, set_num_restarts
 
 contains
 
-  !> Initialize submodules
+  !> Initialize module
   subroutine restart_init
     last_restart_no = 0
     num_restarts = 2
-    need_init = .false.
   end subroutine restart_init
 
   !> Define the maximum number of concurrent restart files
@@ -40,8 +38,6 @@ contains
     integer, intent(in) :: level
     integer :: reslevel
  
-   if (need_init) call restart_init
-
    reslevel = level
     if (reslevel == 0 ) then
        last_restart_no = last_restart_no + 1

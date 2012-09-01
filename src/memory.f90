@@ -9,6 +9,7 @@ module memory
 
   public :: memory_init, memory_print, adjust_mem, get_mem
   public :: alloc_vec, clear_vec, free_vec
+  public :: alloc_mat, clear_mat, free_mat
 
   interface alloc_vec
      module procedure alloc_xyz_vec
@@ -30,6 +31,22 @@ module memory
      module procedure free_int_vec
      module procedure free_label_vec
   end interface
+
+  interface alloc_mat
+     module procedure alloc_dp_mat
+     module procedure alloc_int_mat
+  end interface
+
+  interface clear_mat
+     module procedure clear_dp_mat
+     module procedure clear_int_mat
+  end interface
+
+  interface free_mat
+     module procedure free_dp_mat
+     module procedure free_int_mat
+  end interface
+
 contains
 
   ! "constructor"
@@ -66,9 +83,11 @@ contains
 
     if (num == vec%size) return
     if (vec%size > 0) call free_vec(vec)
-    allocate(vec%x(num),vec%y(num),vec%z(num))
+    if (num > 0) then
+       allocate(vec%x(num),vec%y(num),vec%z(num))
+       call adjust_mem(3*num*dp)
+    end if
     vec%size = num
-    call adjust_mem(3*num*dp)
   end subroutine alloc_xyz_vec
 
   subroutine alloc_dp_vec(vec,num)
@@ -77,9 +96,11 @@ contains
 
     if (num == vec%size) return
     if (vec%size > 0) call free_vec(vec)
-    allocate(vec%v(num))
+    if (num > 0) then
+       allocate(vec%v(num))
+       call adjust_mem(num*dp)
+    end if
     vec%size = num
-    call adjust_mem(num*dp)
   end subroutine alloc_dp_vec
 
   subroutine alloc_int_vec(vec,num)
@@ -88,9 +109,11 @@ contains
 
     if (num == vec%size) return
     if (vec%size > 0) call free_vec(vec)
-    allocate(vec%v(num))
+    if (num > 0) then
+       allocate(vec%v(num))
+       call adjust_mem(num*sp)
+    end if
     vec%size = num
-    call adjust_mem(num*sp)
   end subroutine alloc_int_vec
 
   subroutine alloc_label_vec(vec,num)
@@ -99,9 +122,11 @@ contains
 
     if (num == vec%size) return
     if (vec%size > 0) call free_vec(vec)
-    allocate(vec%v(num))
+    if (num > 0) then
+       allocate(vec%v(num))
+       call adjust_mem(num*16)
+    end if
     vec%size = num
-    call adjust_mem(num*16)
   end subroutine alloc_label_vec
 
   ! clear memory for vector types
@@ -173,5 +198,67 @@ contains
     end if
     vec%size = 0
   end subroutine free_label_vec
+
+  subroutine alloc_dp_mat(mat,numx,numy)
+    type(dp_mat), intent(inout) :: mat
+    integer, intent(in) :: numx,numy
+
+    if ((numx == mat%sizex) .and. (numy == mat%sizey)) return
+    if (mat%sizex > 0) call free_mat(mat)
+    if ((numx > 0) .and. (numy > 0)) then
+       allocate(mat%m(numx,numy))
+       call adjust_mem(numx*numy*dp)
+    end if
+    mat%sizex = numx
+    mat%sizey = numy
+  end subroutine alloc_dp_mat
+
+  subroutine clear_dp_mat(mat)
+    type(dp_mat), intent(inout) :: mat
+
+    if (mat%sizex > 0) mat%m(:,:) = d_zero
+  end subroutine clear_dp_mat
+
+  subroutine free_dp_mat(mat)
+    type(dp_mat), intent(inout) :: mat
+
+    if (mat%sizex > 0) then
+       deallocate(mat%m)
+       call adjust_mem(-mat%sizex*mat%sizey*sp)
+    end if
+    mat%sizex = 0
+    mat%sizey = 0
+  end subroutine free_dp_mat
+
+  subroutine alloc_int_mat(mat,numx,numy)
+    type(int_mat), intent(inout) :: mat
+    integer, intent(in) :: numx,numy
+
+    if ((numx == mat%sizex) .and. (numy == mat%sizey)) return
+    if (mat%sizex > 0) call free_mat(mat)
+    if ((numx > 0) .and. (numy > 0)) then
+       allocate(mat%m(numx,numy))
+       call adjust_mem(numx*numy*dp)
+    end if
+    mat%sizex = numx
+    mat%sizey = numy
+  end subroutine alloc_int_mat
+
+  subroutine clear_int_mat(mat)
+    type(int_mat), intent(inout) :: mat
+
+    if (mat%sizex > 0) mat%m(:,:) = d_zero
+  end subroutine clear_int_mat
+
+  subroutine free_int_mat(mat)
+    type(int_mat), intent(inout) :: mat
+
+    if (mat%sizex > 0) then
+       deallocate(mat%m)
+       call adjust_mem(-mat%sizex*mat%sizey*sp)
+    end if
+    mat%sizex = 0
+    mat%sizey = 0
+  end subroutine free_int_mat
 
 end module memory

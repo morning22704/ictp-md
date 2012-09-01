@@ -17,12 +17,12 @@ module sysinfo_io
   integer :: maxtypes
   real(kind=dp) :: cellparam(6) ! a, b, c, cosalpha, cosbeta, cosgamma
   real(kind=dp), dimension(ndeftypes) :: defmass, defcharge
-  character(len=16), dimension(ndeftypes) :: deftype
-  character(len=8) :: inputfmt
-  character(len=255) :: topfile, posfile, velfile
+  character(len=lblen), dimension(ndeftypes) :: deftype
+  character(len=lblen) :: inpformat
+  character(len=lilen) :: topfile, posfile, velfile
 
   namelist /sysinfo/ maxtypes, cellparam, defmass, defcharge, deftype, &
-       inputfmt, topfile, posfile, velfile
+       inpformat, topfile, posfile, velfile
 
   public :: sysinfo_init, sysinfo_read, sysinfo_write
 
@@ -41,12 +41,12 @@ contains
     call adjust_mem(2*ndeftypes*dp)
     deftype(:) = 'unknown'
     call adjust_mem(ndeftypes*lblen)
-    inputfmt = 'unknown'
-    call adjust_mem(8+sp)
+    inpformat = 'unknown'
+    call adjust_mem(lblen+sp)
     topfile = 'unknown'
     posfile = 'unknown'
     velfile = 'unknown'
-    call adjust_mem(3*(255+sp))
+    call adjust_mem(3*(lilen+sp))
   end subroutine sysinfo_init
 
   ! read sysinfo parameters
@@ -75,7 +75,7 @@ contains
 
        write(stdout,*) separator
        write(stdout,*) 'Max. number of atom types: ', maxtypes
-       write(stdout,*) 'System info format   : ', trim(inputfmt)
+       write(stdout,*) 'System info format   : ', trim(inpformat)
        write(stdout,*) 'Topology read from   : ', trim(topfile)
        write(stdout,*) 'Positions read from  : ', trim(posfile)
        write(stdout,*) 'Velocities read from : ', trim(velfile)
@@ -110,7 +110,7 @@ contains
              write(stdout,*) 'Using internal geometry from input'
              poschannel = stdin
           end if
-       else if ((trim(inputfmt) == 'xyz/xyz') .and. &
+       else if ((trim(inpformat) == 'xyz/xyz') .and. &
             (trim(posfile) == trim(topfile))) then
           call mp_error('Topology and geometry must be different files',0)
        else
@@ -121,17 +121,17 @@ contains
           poschannel = geoin
        end if
 
-       if (trim(inputfmt) == 'lammps') then
+       if (trim(inpformat) == 'lammps') then
           call mp_error('LAMMPS input format currently unsupported',ierr)
-       else if (trim(inputfmt) == 'xyz') then
+       else if (trim(inpformat) == 'xyz') then
           call xyz_topogeom(topchannel)
           if (topchannel == topin) close (unit=topin)
-       else if (trim(inputfmt) == 'xyz/xyz') then
+       else if (trim(inpformat) == 'xyz/xyz') then
           call xyz_topology(topchannel)
           if (topchannel == topin) close (unit=topin)
           call xyz_geometry(poschannel)
           if (poschannel == geoin) close (unit=geoin)
-       else if (trim(inputfmt) == 'psf/xyz') then
+       else if (trim(inpformat) == 'psf/xyz') then
        else
           call mp_error('Unknown or unsupported input data format',ierr)
        end if
@@ -149,7 +149,7 @@ contains
     integer, intent(in) :: channel
     integer :: i, ierr, idx, natoms, thistype
     real(kind=dp), dimension(3) :: pos
-    character(len=255) :: line
+    character(len=lilen) :: line
     character(len=16) :: name
 
     read(channel, fmt=*, iostat=ierr) natoms
@@ -185,7 +185,7 @@ contains
     use atoms
     integer, intent(in) :: channel
     integer :: i, idx, ierr, natoms, thistype
-    character(len=255) :: line
+    character(len=lilen) :: line
     character(len=16) :: name
 
     read(channel, fmt=*, iostat=ierr) natoms
@@ -217,7 +217,7 @@ contains
     integer, intent(in) :: channel
     integer :: i, idx, ierr, natoms
     real(kind=dp), dimension(3) :: pos
-    character(len=255) :: line
+    character(len=lilen) :: line
 
     read(channel, fmt=*, iostat=ierr) natoms
     if (ierr /= 0) call mp_error('Failure to read "natoms" from xyz file',ierr)
@@ -244,7 +244,7 @@ contains
 !    use cell, only: cell_write
 !    use memory, only: alloc_vec, clear_vec
     integer :: ierr
-    character(len=255) :: tmp_topfile, tmp_posfile, tmp_velfile
+    character(len=lilen) :: tmp_topfile, tmp_posfile, tmp_velfile
 
     ! restart is only written by io task
     if (mp_ioproc()) then
@@ -262,16 +262,16 @@ contains
        write(resout,nml=sysinfo,iostat=ierr)
        if (ierr /= 0) call mp_error('Failure writing &sysinfo namelist',ierr)
 
-       if (trim(inputfmt) == 'lammps') then
+       if (trim(inpformat) == 'lammps') then
           call mp_error('LAMMPS input format currently unsupported',ierr)
-       else if (trim(inputfmt) == 'xyz') then
+       else if (trim(inpformat) == 'xyz') then
           call xyz_write(resout,'pos')
           if (is_vel()) call xyz_write(resout,'vel')
-       else if (trim(inputfmt) == 'xyz/xyz') then
+       else if (trim(inpformat) == 'xyz/xyz') then
           call xyz_write(resout,'pos')
           call xyz_write(resout,'pos')
           if (is_vel()) call xyz_write(resout,'vel')
-       else if (trim(inputfmt) == 'psf/xyz') then
+       else if (trim(inpformat) == 'psf/xyz') then
        else
           call mp_error('Unknown or unsupported input data format',ierr)
        end if
