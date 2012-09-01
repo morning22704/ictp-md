@@ -114,14 +114,16 @@ contains
   end subroutine read_coeffs
 
   !> Read pair style parameters from input
-  subroutine pair_lj_cut_read(ntypes,cutoff_def)
+  subroutine pair_lj_cut_read(ntypes,cutoff_def,shift_pot)
     use io
     use control_io, only : is_restart
     use memory, only : memory_print, alloc_mat
     integer, intent(in) :: ntypes
     real(kind=dp), intent(in) :: cutoff_def
+    logical, intent(in) :: shift_pot
     type(int_mat) :: setflag
-    integer :: ierr
+    integer :: ierr,i,j
+    real(kind=dp) :: ratio
     setflag%sizex=-1
     setflag%sizey=-1
 
@@ -155,7 +157,26 @@ contains
     call mp_bcast(sigma)
     call mp_bcast(cutsq)
 
-
+    ! pre-compute some properties
+    do i=1,ntypes
+       do j=i,ntypes
+          lj1%m(i,j) = 48.0_dp * epsil%m(i,j) * sigma%m(i,j)**12;
+          lj1%m(j,i) = lj1%m(i,j)
+          lj2%m(i,j) = 24.0_dp * epsil%m(i,j) * sigma%m(i,j)**6;
+          lj2%m(j,i) = lj2%m(i,j)
+          lj3%m(i,j) =  4.0_dp * epsil%m(i,j) * sigma%m(i,j)**12;
+          lj3%m(j,i) = lj3%m(i,j)
+          lj4%m(i,j) =  4.0_dp * epsil%m(i,j) * sigma%m(i,j)**6;
+          lj4%m(j,i) = lj4%m(i,j)
+          if (shift_pot) then
+             ratio = sigma%m(i,j) * sigma%m(i,j) / cutsq%m(i,j);
+             offset%m(i,j) = 4.0_dp * epsil%m(i,j) * (ratio**6 - ratio**3);
+          else 
+             offset%m(i,j) = d_zero;
+          end if
+          offset%m(j,i) = offset%m(i,j)
+       end do
+    end do
   end subroutine pair_lj_cut_read
 
   subroutine pair_lj_cut_write(channel,ntypes)

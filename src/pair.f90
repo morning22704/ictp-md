@@ -117,7 +117,7 @@ contains
     call mp_bcast(coul_style)
 
     if (trim(pair_style) == 'lj/cut') then
-       call pair_lj_cut_read(ntypes,cutoff_pair)
+       call pair_lj_cut_read(ntypes,cutoff_pair,shift_pot)
     else 
        call mp_error('Unsupported pair style',1)
     end if
