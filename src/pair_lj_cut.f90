@@ -82,16 +82,7 @@ contains
           sigma%m(:,:) = sig
           if (cut > d_zero) cutsq%m(:,:) = cut*cut
           setflag%m(:,:) = 1
-       else if (t1 /= 0) then
-          epsil%m(t1,:) = eps
-          epsil%m(:,t1) = eps
-          sigma%m(t1,:) = sig
-          sigma%m(:,t1) = sig
-          if (cut > d_zero) cutsq%m(t1,:) = cut*cut
-          if (cut > d_zero) cutsq%m(:,t1) = cut*cut
-          setflag%m(t1,:) = 1
-          setflag%m(:,t1) = 1
-       else if (t2 /= 0) then
+       else if (t1 == 0) then
           epsil%m(t2,:) = eps
           epsil%m(:,t2) = eps
           sigma%m(t2,:) = sig
@@ -100,6 +91,15 @@ contains
           if (cut > d_zero) cutsq%m(:,t2) = cut*cut
           setflag%m(t2,:) = 1
           setflag%m(:,t2) = 1
+       else if (t2 == 0) then
+          epsil%m(t1,:) = eps
+          epsil%m(:,t1) = eps
+          sigma%m(t1,:) = sig
+          sigma%m(:,t1) = sig
+          if (cut > d_zero) cutsq%m(t1,:) = cut*cut
+          if (cut > d_zero) cutsq%m(:,t1) = cut*cut
+          setflag%m(t1,:) = 1
+          setflag%m(:,t1) = 1
        else
           epsil%m(t1,t2) = eps
           epsil%m(t2,t1) = eps
