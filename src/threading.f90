@@ -48,12 +48,12 @@ contains
     have_threads = 0
 !$  have_threads = 1
 
+    write (stdout,*) separator
     if (have_threads > 0) then
        write(stdout,*) 'OpenMP enabled build. Number of threads :',nthreads
     else
        write(stdout,*) 'OpenMP not enabled in this build'
     end if
-    write (stdout,*) separator
   end subroutine thr_header
 
 end module threading

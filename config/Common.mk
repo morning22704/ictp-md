@@ -2,7 +2,7 @@
 ##########################################
 VPATH=../src
 NAME=ictp-md
-VERSION=08-2012
+VERSION=09-2012
 EXE=$(NAME).x
 DOC=../$(NAME)-manual.pdf
 # sources w/o preprocessing

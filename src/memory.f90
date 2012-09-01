@@ -71,6 +71,7 @@ contains
   ! print accounted memory
   subroutine memory_print
   use io, only : stdout, separator
+    write(stdout,*) separator
     write(stdout,'(A,F20.3,A)') ' Assigned memory:            ', &
          total_mem/kbyte, ' kBytes'
     write(stdout,*) separator

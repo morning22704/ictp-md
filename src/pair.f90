@@ -103,7 +103,6 @@ contains
           write(stdout,*) 'Unshifted pair potential'
        end if
 
-       write(stdout,*) separator
        call memory_print
 
     end if

@@ -71,12 +71,12 @@ contains
   subroutine mp_header
     use io, only : stdout,separator
 
+    write(stdout,*) separator
 #if defined(_USE_MPI)
     write(stdout,*) 'Number of message passing processes :    ', nprocs
 #else
     write(stdout,*) 'Message passing not enabled in this build'
 #endif
-    write(stdout,*) separator
   end subroutine mp_header
 
   !> Shut down message passing environment

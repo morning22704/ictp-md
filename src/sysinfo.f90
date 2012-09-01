@@ -136,7 +136,6 @@ contains
        else
           call mp_error('Unknown or unsupported input data format',ierr)
        end if
-       write(stdout,*) separator
        call memory_print
     end if ! mp_ioproc()
 

@@ -54,7 +54,6 @@ subroutine version
   write (stdout,*) 'Last commit  : ${githash}'
   write (stdout,*) 'Commit date  : ${gitdate}'
   write (stdout,*) 'Commit author: ${gitauthor}'
-  write (stdout,*) separator
 end subroutine version
 end module header
 EOF

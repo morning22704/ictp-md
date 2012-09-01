@@ -168,7 +168,6 @@ contains
        write(stdout,*) 'Sequence no. in trajectory:  ', seq_no
        write(stdout,*) 'Trajectory currently at step:',current_step
        write(stdout,*) 'Run scheduled to end at step:',end_step
-       write(stdout,*) separator
     endif
   end subroutine control_print
 

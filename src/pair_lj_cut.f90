@@ -149,8 +149,8 @@ contains
 
        ierr = sum(setflag%m)
        if (ierr /= 0) call mp_error('Not all pair coefficienty are set',ierr)
-       write(stdout,*) separator
        call memory_print
+       write(stdout,*) 'Distributing and precomputing pair potential data'
     end if
 
     call mp_bcast(epsil)
@@ -158,6 +158,11 @@ contains
     call mp_bcast(cutsq)
 
     ! pre-compute some properties
+    call alloc_mat(lj1,ntypes,ntypes)
+    call alloc_mat(lj2,ntypes,ntypes)
+    call alloc_mat(lj3,ntypes,ntypes)
+    call alloc_mat(lj4,ntypes,ntypes)
+    call alloc_mat(offset,ntypes,ntypes)
     do i=1,ntypes
        do j=i,ntypes
           lj1%m(i,j) = 48.0_dp * epsil%m(i,j) * sigma%m(i,j)**12;
@@ -177,6 +182,7 @@ contains
           offset%m(j,i) = offset%m(i,j)
        end do
     end do
+    if (mp_ioproc()) call memory_print
   end subroutine pair_lj_cut_read
 
   subroutine pair_lj_cut_write(channel,ntypes)
