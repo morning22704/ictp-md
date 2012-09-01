@@ -81,7 +81,7 @@ contains
           epsil%m(:,:) = eps
           sigma%m(:,:) = sig
           if (cut > d_zero) cutsq%m(:,:) = cut*cut
-          setflag%m(:,:) = 1
+          setflag%m(:,:) = 0
        else if (t1 == 0) then
           epsil%m(t2,:) = eps
           epsil%m(:,t2) = eps
@@ -89,8 +89,8 @@ contains
           sigma%m(:,t2) = sig
           if (cut > d_zero) cutsq%m(t2,:) = cut*cut
           if (cut > d_zero) cutsq%m(:,t2) = cut*cut
-          setflag%m(t2,:) = 1
-          setflag%m(:,t2) = 1
+          setflag%m(t2,:) = 0
+          setflag%m(:,t2) = 0
        else if (t2 == 0) then
           epsil%m(t1,:) = eps
           epsil%m(:,t1) = eps
@@ -98,8 +98,8 @@ contains
           sigma%m(:,t1) = sig
           if (cut > d_zero) cutsq%m(t1,:) = cut*cut
           if (cut > d_zero) cutsq%m(:,t1) = cut*cut
-          setflag%m(t1,:) = 1
-          setflag%m(:,t1) = 1
+          setflag%m(t1,:) = 0
+          setflag%m(:,t1) = 0
        else
           epsil%m(t1,t2) = eps
           epsil%m(t2,t1) = eps
@@ -107,8 +107,8 @@ contains
           sigma%m(t2,t1) = sig
           if (cut > d_zero) cutsq%m(t1,t2) = cut*cut
           if (cut > d_zero) cutsq%m(t2,t1) = cut*cut
-          setflag%m(t1,t2) = 1
-          setflag%m(t2,t1) = 1
+          setflag%m(t1,t2) = 0
+          setflag%m(t2,t1) = 0
        end if
     end do
   end subroutine read_coeffs
@@ -120,9 +120,10 @@ contains
     use memory, only : memory_print, alloc_mat
     integer, intent(in) :: ntypes
     real(kind=dp), intent(in) :: cutoff_def
-    type(int_mat) :: setval
-    setval%sizex=-1
-    setval%sizey=-1
+    type(int_mat) :: setflag
+    integer :: ierr
+    setflag%sizex=-1
+    setflag%sizey=-1
 
     ! input is only read by io task
     if (mp_ioproc()) then
@@ -130,20 +131,22 @@ contains
        call alloc_mat(epsil,ntypes,ntypes)
        call alloc_mat(sigma,ntypes,ntypes)
        call alloc_mat(cutsq,ntypes,ntypes)
-       call alloc_mat(setval,ntypes,ntypes)
+       call alloc_mat(setflag,ntypes,ntypes)
        cutsq%m(:,:) = cutoff_def*cutoff_def
-       setval%m(:,:) = 0
+       setflag%m(:,:) = 1
 
        if (is_restart()) then
           write(stdout,*) 'Reading &pair_coeff section from restart'
           call find_section(resin,'pair_coeff')
-          call read_coeffs(resin,ntypes,setval)
+          call read_coeffs(resin,ntypes,setflag)
        end if
 
        write(stdout,*) 'Reading &pair_coeff section from input'
        call find_section(stdin,'pair_coeff')
-       call read_coeffs(stdin,ntypes,setval)
+       call read_coeffs(stdin,ntypes,setflag)
 
+       ierr = sum(setflag%m)
+       if (ierr /= 0) call mp_error('Not all pair coefficienty are set',ierr)
        write(stdout,*) separator
        call memory_print
     end if
