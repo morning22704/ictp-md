@@ -21,8 +21,8 @@ module control_io
   real(kind=dp) :: max_time !< Maximal wall time for this run
   logical :: restart        !< Flag to trigger reading in a restart
   logical :: debug          !< Flag to trigger debug output
-  character(len=120) :: restfile !< Path to restart file
-  character(len=120) :: prefix   !< Prefix
+  character(len=lilen) :: restfile !< Path to restart file
+  character(len=lilen) :: prefix   !< Prefix
 
   namelist /control/ initial_step, current_step, last_step, run_step, &
        seq_no, max_time, restart, debug, restfile, prefix
@@ -48,7 +48,7 @@ contains
     debug        = .false.
     restfile     = 'unknown'
     prefix       = 'mdrun'
-    call adjust_mem(6*sp+dp+2*sp+2*(120+sp)) ! global memory use of module
+    call adjust_mem(6*sp+dp+2*sp+2*(lilen+sp)) ! global memory use of module
   end subroutine control_init
 
   !> Read &control namelist
@@ -66,6 +66,7 @@ contains
     integer :: tmp_initial, tmp_current, tmp_last, tmp_run, tmp_seq
     logical :: tmp_debug
     real(kind=dp) :: tmp_max
+    character(len=lilen) :: tmp_prefix
 
     ! input is only read by io task
     if (mp_ioproc()) then
@@ -84,7 +85,8 @@ contains
           tmp_run     = run_step
           tmp_max     = max_time
           tmp_seq     = seq_no
-          tmp_debug = debug
+          tmp_debug   = debug
+          tmp_prefix  = prefix
 
           if (trim(restfile) == 'unknown') then
              call mp_error('Set "restfile" to name of restart file',15)
@@ -110,6 +112,7 @@ contains
           if (tmp_seq >= 0)      seq_no       = tmp_seq
           restart = .true.
           debug = tmp_debug
+          if (trim(tmp_prefix) /= 'mdrun') prefix = tmp_prefix
           if (current_step < initial_step) &
                call mp_error('current_step must be larger than initial_step',1)
        endif
