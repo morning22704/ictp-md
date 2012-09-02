@@ -120,7 +120,7 @@ contains
   subroutine pair_lj_cut_read(ntypes,cutoff_def,cutoff_max,shift_pot)
     use io
     use control_io, only : is_restart
-    use memory, only : memory_print, alloc_mat
+    use memory, only : memory_print, alloc_mat, free_mat
     integer, intent(in) :: ntypes
     real(kind=dp), intent(in) :: cutoff_def
     real(kind=dp), intent(inout) :: cutoff_max
@@ -154,6 +154,8 @@ contains
        ierr = sum(setflag%m)
        if (ierr /= 0) call mp_error('Not all pair coefficienty are set',ierr)
        call memory_print
+       call free_mat(setflag)
+
        write(stdout,*) 'Distributing and precomputing pair potential data'
        write(stdout,*) 'Maximal global cutoff : ', cutoff_max
     end if
