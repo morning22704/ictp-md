@@ -7,35 +7,46 @@
 module sysinfo_io
   use kinds
   use constants
-  use atoms, only: ndeftypes
+  use atoms,           only: ndeftypes
   use message_passing, only: mp_ioproc, mp_bcast, mp_error
-  use threading, only: thr_get_num_threads
-  use control_io, only: is_restart
+  use threading,       only: thr_get_num_threads
+  use control_io,      only: is_restart
   implicit none
 
   private
-  integer :: maxtypes
-  real(kind=dp) :: cellparam(6) ! a, b, c, cosalpha, cosbeta, cosgamma
-  real(kind=dp), dimension(ndeftypes) :: defmass, defcharge
-  character(len=lblen), dimension(ndeftypes) :: deftype
-  character(len=lblen) :: inpformat, unit_style
-  character(len=lilen) :: topfile, posfile, velfile
+  integer :: maxtypes                !< maximum number of atom types in run
+  logical :: ortho_cell              !< Cell is orthogonal
+  real(kind=dp) :: cellparam(6)      !< a, b, c, alpha, beta, gamma
+  real(kind=dp) :: origin(3)         !< simulation cell origin 
+  real(kind=dp), dimension(ndeftypes) :: defmass   !< default masses for types
+  real(kind=dp), dimension(ndeftypes) :: defcharge !< default charges for types
+  character(len=lblen), dimension(ndeftypes) :: deftype !< default atom labels
+  character(len=lblen) :: inpformat  !< format of topology/geometry input
+  character(len=lblen) :: unit_style !< input and output units
+  character(len=lilen) :: topfile    !< name of topology file
+  character(len=lilen) :: posfile    !< name of geometry file
+  character(len=lilen) :: velfile    !< name of velocity file
 
-  namelist /sysinfo/ maxtypes, cellparam, defmass, defcharge, deftype, &
+  namelist /sysinfo/ maxtypes, ortho_cell, cellparam, &
+       defmass, defcharge, deftype, &
        inpformat, unit_style, topfile, posfile, velfile
 
   public :: sysinfo_init, sysinfo_read, sysinfo_write
 
 contains
 
-  ! set default values
+  !> Set defaults for the sysinfo module
   subroutine sysinfo_init
+    use cell,   only: cell_init
     use memory, only: adjust_mem
 
     maxtypes = ndeftypes
-    call adjust_mem(sp)
+    ortho_cell = .true.
+    call adjust_mem(2*sp)
     cellparam(:) = d_zero
-    call adjust_mem(6*dp)
+    cellparam(4:6) = 90.0_dp
+    origin(:) = d_zero
+    call adjust_mem((3+6)*dp)
     defmass(:) = d_zero
     defcharge(:) = d_zero
     call adjust_mem(2*ndeftypes*dp)
@@ -48,13 +59,14 @@ contains
     posfile = 'unknown'
     velfile = 'unknown'
     call adjust_mem(3*(lilen+sp))
+    call cell_init
   end subroutine sysinfo_init
 
-  ! read sysinfo parameters
+  !> Read in input for the sysinfo module
   subroutine sysinfo_read
     use io
     use atoms, only: atoms_init, atoms_replicate, types_init
-    use cell, only: cell_init
+    use cell, only: set_cell, cell_replicate
     use units, only: set_units
     use memory, only: alloc_vec, clear_vec, memory_print
     integer :: ierr, topchannel, poschannel, velchannel
@@ -89,7 +101,7 @@ contains
        call set_units(trim(unit_style))
        call atoms_init(maxtypes)
        call types_init(deftype,maxtypes)
-       call cell_init
+       call set_cell(origin,cellparam,ortho_cell)
 
        if (trim(topfile) == 'internal') then
           if (is_restart()) then
@@ -140,10 +152,16 @@ contains
        else
           call mp_error('Unknown or unsupported input data format',ierr)
        end if
+
+       if (ortho_cell) then
+          write(stdout,*) 'Orthogonal cell'
+       else
+          write(stdout,*) 'Non-orthogonal cell'
+       end if
        call memory_print
     end if ! mp_ioproc()
 
-    call atoms_replicate(maxtypes)
+    call atoms_replicate
     ! call cell_replicate
 
   end subroutine sysinfo_read
