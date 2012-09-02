@@ -13,6 +13,8 @@ subroutine basic_setup
   ! parallel programming modules
   use message_passing, only : mp_init, mp_header, mp_ioproc
   use threading, only : thr_init, thr_header
+  use input, only : input_init
+  use restart, only : restart_init
   implicit none
 
   ! initialize basic modules as needed
@@ -29,6 +31,11 @@ subroutine basic_setup
      call thr_header
      call memory_print
   end if
+
+  ! run initializers
+  call input_init
+  call restart_init
+
 end subroutine basic_setup
 
 !> ICTP MD, a simple, modular, and parallel MD engine in Fortran 95
@@ -44,16 +51,12 @@ end subroutine basic_setup
 !! Ye, who enters here, beware of dragons.
 program ictp_md
   use message_passing, only : mp_finish
-  use input
-  use restart
+  use input, only : input_read
+  use restart, only : restart_write
   implicit none
 
   ! perform general setup tasks
   call basic_setup
-
-  ! run initializers
-  call input_init
-  call restart_init
 
   ! read system settings from input
   call input_read
