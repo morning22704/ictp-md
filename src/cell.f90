@@ -11,6 +11,7 @@ module cell
   real(kind=dp), dimension(6) :: hmat, hinv
 
   public :: cell_init, set_cell, cell_replicate
+  public :: get_hmat, get_hinv, get_origin
 
   interface set_cell
      module procedure set_cell_abc
@@ -100,7 +101,6 @@ contains
     call mp_bcast(origin,3)
     call mp_bcast(hmat,6)
     call mp_bcast(hinv,6)
-
   end subroutine cell_replicate
 
   subroutine hinvert
@@ -115,5 +115,20 @@ contains
        hinv(6) = -hmat(6) / (hmat(1)*hmat(2))
     end if
   end subroutine hinvert
+
+  subroutine get_hmat(vec)
+    real(kind=dp), dimension(6), intent(out) :: vec
+    vec(:) = hmat(:)
+  end subroutine get_hmat
+
+  subroutine get_hinv(vec)
+    real(kind=dp), dimension(6), intent(out) :: vec
+    vec(:) = hinv(:)
+  end subroutine get_hinv
+
+  subroutine get_origin(vec)
+    real(kind=dp), dimension(3), intent(out) :: vec
+    vec(:) = origin(:)
+  end subroutine get_origin
 
 end module cell
