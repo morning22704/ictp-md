@@ -25,6 +25,7 @@ module message_passing
      module procedure bcast_int
      module procedure bcast_dp
      module procedure bcast_log
+     module procedure bcast_dp_dim
      module procedure bcast_string
      module procedure bcast_xyz_vec
      module procedure bcast_dp_vec
@@ -147,6 +148,18 @@ contains
     call mpi_bcast(val,len(val),MPI_CHARACTER,ioproc,comm,ierr)
 #endif
   end subroutine bcast_string
+
+  subroutine bcast_dp_dim(val,dim)
+    implicit none
+    real(kind=dp), dimension(*), intent(inout) :: val
+    integer, intent(in) :: dim
+#if defined(_USE_MPI)
+    integer :: ierr
+    include 'mpif.h'
+
+    call mpi_bcast(val,dim,MPI_DOUBLE_PRECISION,ioproc,comm,ierr)
+#endif
+  end subroutine bcast_dp_dim
 
   subroutine bcast_xyz_vec(val)
     implicit none
