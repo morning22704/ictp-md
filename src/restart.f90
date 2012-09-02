@@ -38,7 +38,7 @@ contains
     use io, only : resout
     integer, intent(in) :: level
     integer :: reslevel
- 
+
    reslevel = level
     if (reslevel == 0 ) then
        last_restart_no = last_restart_no + 1

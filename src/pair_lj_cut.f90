@@ -184,7 +184,7 @@ contains
           if (shift_pot) then
              ratio = sigma%m(i,j) * sigma%m(i,j) / cutsq%m(i,j);
              offset%m(i,j) = 4.0_dp * epsil%m(i,j) * (ratio**6 - ratio**3);
-          else 
+          else
              offset%m(i,j) = d_zero;
           end if
           offset%m(j,i) = offset%m(i,j)

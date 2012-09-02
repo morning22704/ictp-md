@@ -319,7 +319,7 @@ contains
        x = x_s%x(i)
        y = x_s%y(i)
        z = x_s%z(i)
-       
+
        x_r%x(i) = hmat(1)*x + hmat(6)*y + hmat(5)*z + origin(1)
        x_r%y(i) = hmat(2)*y + hmat(4)*z + origin(2)
        x_r%z(i) = hmat(3)*z + origin(3)

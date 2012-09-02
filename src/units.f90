@@ -138,7 +138,7 @@ contains
        default_dt = 0.001_dp
        default_skin = 2.0_dp
 
-    else 
+    else
        call mp_error('Unknown unit style',1)
     end if
 

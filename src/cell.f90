@@ -42,7 +42,7 @@ contains
 
     ortho_cell = is_ortho
     origin = new_origin
-    
+
     if (ortho_cell) then
        hmat(1:3) = new_cellparam(1:3)
        hmat(4:6) = d_zero
@@ -109,7 +109,7 @@ contains
     hinv(3) = d_one / hmat(3)
     if (ortho_cell) then
        hinv(4:6) = d_zero
-    else 
+    else
        hinv(4) = -hmat(4) / (hmat(2)*hmat(3))
        hinv(5) = (hmat(4)*hmat(6) - hmat(2)*hmat(5))/(hmat(1)*hmat(2)*hmat(3))
        hinv(6) = -hmat(6) / (hmat(1)*hmat(2))

@@ -18,7 +18,7 @@ module pair_io
   logical       :: do_coulomb  !< Calculate coulomb interactions
   character(len=lblen) :: pair_style !< String indicating the type of potential
   character(len=lblen) :: coul_style !< String indicating the type of potential
-  
+
   public :: pair_init, pair_read, pair_write
   namelist /pair/ cutoff_pair, cutoff_coul, shift_pot, do_coulomb, &
        pair_style, coul_style
@@ -40,12 +40,12 @@ contains
     pair_style  = 'unknown'
     coul_style  = 'unknown'
     call adjust_mem(2*lblen)
- 
+
     call pair_lj_cut_init
     write(stdout,*) separator
   end subroutine pair_init
- 
-  !> Read input 
+
+  !> Read input
   subroutine pair_read
     use io
     use control_io, only : is_restart
@@ -115,7 +115,7 @@ contains
 
     if (trim(pair_style) == 'lj/cut') then
        call pair_lj_cut_read(ntypes,cutoff_pair,cutoff_max,shift_pot)
-    else 
+    else
        call mp_error('Unsupported pair style',1)
     end if
 
@@ -132,10 +132,10 @@ contains
        write(stdout,*) 'Writing &pair namelist to restart'
        write(unit=resout, nml=pair, iostat=ierr)
        if (ierr /= 0) call mp_error('Failure writing &pair restart',ierr)
-       
+
     if (trim(pair_style) == 'lj/cut') then
        call pair_lj_cut_write(resout,ntypes)
-    else 
+    else
        call mp_error('Unsupported pair style',1)
     end if
 

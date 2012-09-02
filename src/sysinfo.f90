@@ -17,7 +17,7 @@ module sysinfo_io
   integer :: maxtypes                !< maximum number of atom types in run
   logical :: ortho_cell              !< Cell is orthogonal
   real(kind=dp) :: cellparam(6)      !< a, b, c, alpha, beta, gamma
-  real(kind=dp) :: origin(3)         !< simulation cell origin 
+  real(kind=dp) :: origin(3)         !< simulation cell origin
   real(kind=dp), dimension(ndeftypes) :: defmass   !< default masses for types
   real(kind=dp), dimension(ndeftypes) :: defcharge !< default charges for types
   character(len=lblen), dimension(ndeftypes) :: deftype !< default atom labels
