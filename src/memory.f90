@@ -6,8 +6,9 @@ module memory
 
   private
   real(kind=dp) :: total_mem
+  logical :: is_debug
 
-  public :: memory_init, memory_print, adjust_mem, get_mem
+  public :: memory_init, memory_print, adjust_mem, get_mem, debug_mem
   public :: alloc_vec, clear_vec, free_vec
   public :: alloc_mat, clear_mat, free_mat
 
@@ -52,11 +53,17 @@ contains
   ! "constructor"
   subroutine memory_init
     total_mem = d_zero
+    is_debug  = .false.
+    call adjust_mem(dp+sp)
   end subroutine memory_init
 
   ! adjust total memory accounting
   subroutine adjust_mem(amount)
+    use io, only : stderr
     integer, intent(in) :: amount
+
+    if (is_debug) &
+         write(stderr,'(A,I8,A)') ' Adjusting memory by : ', amount, ' Bytes'
 
     total_mem = total_mem + dble(amount)
   end subroutine adjust_mem
@@ -67,6 +74,12 @@ contains
 
     get_mem = total_mem
   end function get_mem
+
+  ! turn on memory debugging
+  subroutine debug_mem(flag)
+    logical :: flag
+    is_debug = flag
+  end subroutine debug_mem
 
   ! print accounted memory
   subroutine memory_print
