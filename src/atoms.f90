@@ -71,14 +71,12 @@ contains
     natoms = size
   end subroutine atoms_resize
 
-  subroutine atoms_replicate(size)
+  subroutine atoms_replicate
     use memory, only: alloc_vec
     use message_passing, only: mp_bcast
-    integer, intent(in) :: size
     integer :: nthr
 
     nthr = thr_get_num_threads()
-
     call mp_bcast(natoms)
     call mp_bcast(x_r)
     valid_x_r = .true.
@@ -86,7 +84,7 @@ contains
     call mp_bcast(have_chg)
     if (have_chg) call mp_bcast(chg)
     call mp_bcast(mss)
-    call alloc_vec(for,size*nthr)
+    call alloc_vec(for,natoms*nthr)
   end subroutine atoms_replicate
 
   subroutine types_init(typelist,maxtypes)
