@@ -21,11 +21,12 @@ module control_io
   real(kind=dp) :: max_time !< Maximal wall time for this run
   logical :: restart        !< Flag to trigger reading in a restart
   logical :: debug          !< Flag to trigger debug output
+  character(len=lblen) :: unit_style    !< input and output units
   character(len=lilen) :: restfile !< Path to restart file
-  character(len=lilen) :: prefix   !< Prefix
+  character(len=lilen) :: prefix   !< Prefix for output files
 
   namelist /control/ initial_step, current_step, last_step, run_step, &
-       seq_no, max_time, restart, debug, restfile, prefix
+       seq_no, max_time, restart, debug, unit_style, restfile, prefix
 
   public :: control_init, control_read, control_write
   public :: is_restart, is_debug
@@ -46,6 +47,7 @@ contains
     max_time     = -d_one
     restart      = .false.
     debug        = .false.
+    unit_style        = 'unknown'
     restfile     = 'unknown'
     prefix       = 'mdrun'
     call adjust_mem(6*sp+dp+2*sp+2*(lilen+sp)) ! global memory use of module
@@ -60,8 +62,9 @@ contains
   !! different, i.e. the restart is read in first and then the
   !! settings in the input file can override the restart settings.
   subroutine control_read
-    use io, only : stdin, resin
+    use io,     only : stdin, resin
     use memory, only : memory_print
+    use units,  only : set_units
     integer :: ierr
     integer :: tmp_initial, tmp_current, tmp_last, tmp_run, tmp_seq
     logical :: tmp_debug
@@ -130,6 +133,7 @@ contains
        end if
        if (seq_no < 0) seq_no = 0
        call control_print
+       call set_units(trim(unit_style))
        call memory_print
     end if ! mp_ioproc()
 
@@ -137,6 +141,7 @@ contains
     call mp_bcast(current_step)
     call mp_bcast(end_step)
     call mp_bcast(debug)
+    call mp_bcast(unit_style)
   end subroutine control_read
 
   !> Flag if input data is to be read from a restart
@@ -159,6 +164,7 @@ contains
 
     if (mp_ioproc()) then
        write(stdout,*) separator
+       write(stdout,*) 'Unit style selected  : ', trim(unit_style)
        write(stdout,*) 'Trajectory name prefix: ', trim(prefix)
        if (debug) write(stdout,*) 'Debug output is requested '
        if (restart) write(stdout,*) 'Restart read from file: ', trim(restfile)
