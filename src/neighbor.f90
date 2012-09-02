@@ -38,7 +38,6 @@ contains
     use memory, only: alloc_vec, clear_vec, memory_print
     use control_io, only: is_restart
     integer :: ierr
-    character(len=lilen) :: line
 
     ! input is only read by io task
     if (mp_ioproc()) then
@@ -50,10 +49,6 @@ contains
        end if
        write(stdout,*) 'Reading &neighbor namelist from input'
        read(stdin,nml=neighbor,iostat=ierr)
-       if (ierr /= 0) then
-          read(stdin,*) line
-          print*,'next line:',line
-       end if
        if (ierr /= 0) &
             call mp_error('Failure reading &neighbor namelist',ierr)
 
@@ -72,7 +67,6 @@ contains
 !       write(stdout,*) 'Positions read from  : ', trim(posfile)
 !       write(stdout,*) 'Velocities read from : ', trim(velfile)
 !       write(stdout,*) separator
-
     end if
   end subroutine neighbor_read
 
