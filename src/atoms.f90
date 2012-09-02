@@ -15,7 +15,7 @@ module atoms
   integer, parameter :: ndeftypes = 16
   type (xyz_vec)   :: x_r, x_s, vel, for
   type (dp_vec)    :: chg, mss
-  type (int_vec)   :: typ, idx
+  type (int_vec)   :: typ, idx, map
   type (label_vec) :: lbl
 
   public :: atoms_init, atoms_resize, atoms_replicate, types_init
@@ -46,10 +46,11 @@ contains
     call adjust_mem(4*(3*dp+sp))
     typ%size = -1
     idx%size = -1
+    map%size = -1
     chg%size = -1
     mss%size = -1
     lbl%size = -1
-    call adjust_mem(5*(dp+sp))
+    call adjust_mem(6*(dp+sp))
 
     call alloc_vec(mss,maxtypes)
     call alloc_vec(lbl,maxtypes)
@@ -67,6 +68,7 @@ contains
     call alloc_vec(for,size*nthr)
     call alloc_vec(typ,size)
     call alloc_vec(idx,size)
+    call alloc_vec(map,size)
     call alloc_vec(chg,size)
     natoms = size
   end subroutine atoms_resize
@@ -82,6 +84,7 @@ contains
     valid_x_r = .true.
     valid_x_s = .false.
     call mp_bcast(typ)
+    call mp_bcast(idx)
     call mp_bcast(have_chg)
     if (have_chg) call mp_bcast(chg)
     call mp_bcast(mss)
@@ -90,6 +93,8 @@ contains
     ! make scaled coordinates consistent
     call alloc_vec(x_s,natoms)
     call x2lambda
+    call alloc_vec(map,natoms)
+    call remap
   end subroutine atoms_replicate
 
   subroutine types_init(typelist,maxtypes)
@@ -326,5 +331,12 @@ contains
     end do
     valid_x_r = .true.
   end subroutine lambda2x
+
+  subroutine remap
+    integer :: i
+    do i=1,natoms
+       map%v(idx%v(i)) = i
+    end do
+  end subroutine remap
 
 end module atoms
