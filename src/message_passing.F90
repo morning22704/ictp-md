@@ -217,8 +217,7 @@ contains
        call free_vec(val)
        call alloc_vec(val,newsize)
     end if
-    call mpi_bcast(val%v,val%size,MPI_DOUBLE_PRECISION,&
-         ioproc,comm,ierr)
+    call mpi_bcast(val%v,val%size,MPI_INTEGER,ioproc,comm,ierr)
 #endif
   end subroutine bcast_int_vec
 
