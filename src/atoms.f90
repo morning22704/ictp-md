@@ -80,11 +80,16 @@ contains
     call mp_bcast(natoms)
     call mp_bcast(x_r)
     valid_x_r = .true.
+    valid_x_s = .false.
     call mp_bcast(typ)
     call mp_bcast(have_chg)
     if (have_chg) call mp_bcast(chg)
     call mp_bcast(mss)
+
     call alloc_vec(for,natoms*nthr)
+    ! make scaled coordinates consistent
+    call alloc_vec(x_s,natoms)
+    call x2lambda
   end subroutine atoms_replicate
 
   subroutine types_init(typelist,maxtypes)
@@ -273,5 +278,53 @@ contains
        write(channel,*) lbl%v(typ%v(i)), vec%x(i), vec%y(i), vec%z(i)
     end do
   end subroutine xyz_write
+
+  !>   convert box coords to triclinic 0-1 lamda coords for all atoms
+  !!   lamda = H^-1 (x - x0)
+  subroutine x2lambda
+    use cell, only: get_origin, get_hinv
+    real(kind=dp) :: origin(3), hinv(6), delta(3)
+    integer :: i
+
+    if (valid_x_s) return
+
+    call get_origin(origin)
+    call get_hinv(hinv)
+
+    do i=1,natoms
+       delta(1) = x_r%x(i) - origin(1)
+       delta(2) = x_r%y(i) - origin(2)
+       delta(3) = x_r%z(i) - origin(3)
+
+       x_s%x(i) = hinv(1)*delta(1) + hinv(6)*delta(2) + hinv(5)*delta(3)
+       x_s%y(i) = hinv(2)*delta(2) + hinv(4)*delta(3)
+       x_s%z(i) = hinv(3)*delta(3)
+    end do
+    valid_x_s = .true.
+  end subroutine x2lambda
+
+  !> convert triclinic 0-1 lamda coords to box coords for all atoms
+  !! x = H lamda + x0;
+  subroutine lambda2x
+    use cell, only: get_origin, get_hmat
+    real(kind=dp) :: origin(3), hmat(6), x,y,z
+    integer :: i
+
+    if (valid_x_r) return
+
+    call get_origin(origin)
+    call get_hmat(hmat)
+
+    do i=1,natoms
+       x = x_s%x(i)
+       y = x_s%y(i)
+       z = x_s%z(i)
+       
+       x_r%x(i) = hmat(1)*x + hmat(6)*y + hmat(5)*z + origin(1)
+       x_r%y(i) = hmat(2)*y + hmat(4)*z + origin(2)
+       x_r%z(i) = hmat(3)*z + origin(3)
+    end do
+    valid_x_r = .true.
+  end subroutine lambda2x
 
 end module atoms
