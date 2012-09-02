@@ -13,7 +13,10 @@ module constants
   implicit none
 
   public
-  real(kind=dp), parameter :: d_zero = 0.0_dp !< double precision zero
-  real(kind=dp), parameter :: d_one  = 1.0_dp !< double precision one
+  real(kind=dp), parameter :: d_zero  = 0.0_dp !< double precision zero
+  real(kind=dp), parameter :: d_one   = 1.0_dp !< double precision one
+  real(kind=dp), parameter :: d_half  = 0.5_dp !< double precision one
+  real(kind=dp), parameter :: d_pi    = 3.14159265358979323846_dp !< Pi
+  real(kind=dp), parameter :: d_small = 1.0e-12_dp !< very small number
   integer,       parameter :: kbyte  = 1024   !< kilobyte
 end module constants
