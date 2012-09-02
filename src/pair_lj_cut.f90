@@ -46,8 +46,9 @@ contains
     write(stdout,*) 'Adding pair style: lj/cut'
   end subroutine pair_lj_cut_init
 
-  subroutine read_coeffs(channel,ntypes,setflag)
+  subroutine read_coeffs(channel,ntypes,cutoff_max,setflag)
     integer, intent(in) :: channel, ntypes
+    real(kind=dp), intent(inout) :: cutoff_max
     type(int_mat), intent(inout) :: setflag
     character(len=lilen) :: line
     logical :: not_done
@@ -76,7 +77,9 @@ contains
             call mp_error('Illegal 1st type in pair_coeff section',count)
        if ((t2 < 0) .or. (t2 > ntypes)) &
             call mp_error('Illegal 2nd type in pair_coeff section',count)
-          
+
+       if (cut > cutoff_max) cutoff_max = cut
+
        if ((t1 == 0) .and. (t2 == 0)) then
           epsil%m(:,:) = eps
           sigma%m(:,:) = sig
@@ -114,12 +117,13 @@ contains
   end subroutine read_coeffs
 
   !> Read pair style parameters from input
-  subroutine pair_lj_cut_read(ntypes,cutoff_def,shift_pot)
+  subroutine pair_lj_cut_read(ntypes,cutoff_def,cutoff_max,shift_pot)
     use io
     use control_io, only : is_restart
     use memory, only : memory_print, alloc_mat
     integer, intent(in) :: ntypes
     real(kind=dp), intent(in) :: cutoff_def
+    real(kind=dp), intent(inout) :: cutoff_max
     logical, intent(in) :: shift_pot
     type(int_mat) :: setflag
     integer :: ierr,i,j
@@ -140,22 +144,24 @@ contains
        if (is_restart()) then
           write(stdout,*) 'Reading &pair_coeff section from restart'
           call find_section(resin,'pair_coeff')
-          call read_coeffs(resin,ntypes,setflag)
+          call read_coeffs(resin,ntypes,cutoff_max,setflag)
        end if
 
        write(stdout,*) 'Reading &pair_coeff section from input'
        call find_section(stdin,'pair_coeff')
-       call read_coeffs(stdin,ntypes,setflag)
+       call read_coeffs(stdin,ntypes,cutoff_max,setflag)
 
        ierr = sum(setflag%m)
        if (ierr /= 0) call mp_error('Not all pair coefficienty are set',ierr)
        call memory_print
        write(stdout,*) 'Distributing and precomputing pair potential data'
+       write(stdout,*) 'Maximal global cutoff : ', cutoff_max
     end if
 
     call mp_bcast(epsil)
     call mp_bcast(sigma)
     call mp_bcast(cutsq)
+    call mp_bcast(cutoff_max)
 
     ! pre-compute some properties
     call alloc_mat(lj1,ntypes,ntypes)
