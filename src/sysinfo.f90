@@ -15,21 +15,25 @@ module sysinfo_io
 
   private
   integer :: maxtypes                !< maximum number of atom types in run
+  integer :: neigh_level             !< level of cell division
+  integer :: neigh_delay             !< number of steps until neighbor update
+  integer :: neigh_every             !< frequency of neighbor update checks
+  logical :: neigh_check             !< check if neighbor updates are needed
   logical :: ortho_cell              !< Cell is orthogonal
-  real(kind=dp) :: cellparam(6)      !< a, b, c, alpha, beta, gamma
-  real(kind=dp) :: origin(3)         !< simulation cell origin
-  real(kind=dp), dimension(ndeftypes) :: defmass   !< default masses for types
-  real(kind=dp), dimension(ndeftypes) :: defcharge !< default charges for types
-  character(len=lblen), dimension(ndeftypes) :: deftype !< default atom labels
+  real(kind=dp) :: cellparam(6)         !< a, b, c, alpha, beta, gamma
+  real(kind=dp) :: origin(3)            !< simulation cell origin
+  real(kind=dp) :: neigh_skin           !< neighborlist skin distance
+  real(kind=dp) :: defmass(ndeftypes)   !< default masses for types
+  real(kind=dp) :: defcharge(ndeftypes) !< default charges for types
+  character(len=lblen) :: deftype(ndeftypes) !< default atom labels
   character(len=lblen) :: inpformat  !< format of topology/geometry input
-  character(len=lblen) :: unit_style !< input and output units
   character(len=lilen) :: topfile    !< name of topology file
   character(len=lilen) :: posfile    !< name of geometry file
   character(len=lilen) :: velfile    !< name of velocity file
 
-  namelist /sysinfo/ maxtypes, ortho_cell, cellparam, &
-       defmass, defcharge, deftype, &
-       inpformat, unit_style, topfile, posfile, velfile
+  namelist /sysinfo/ maxtypes, neigh_level, neigh_delay, neigh_every, &
+       neigh_check, ortho_cell, cellparam, neigh_skin, &
+       defmass, defcharge, deftype, inpformat, topfile, posfile, velfile
 
   public :: sysinfo_init, sysinfo_read, sysinfo_write
 
@@ -41,20 +45,25 @@ contains
     use memory, only: adjust_mem
 
     maxtypes = ndeftypes
+    neigh_level = 1
+    neigh_delay = 0
+    neigh_every = 1
+    call adjust_mem(4*sp)
     ortho_cell = .true.
+    neigh_check = .true.
     call adjust_mem(2*sp)
+    neigh_skin = d_one
     cellparam(:) = d_zero
     cellparam(4:6) = 90.0_dp
     origin(:) = d_zero
-    call adjust_mem((3+6)*dp)
+    call adjust_mem((1+3+6)*dp)
     defmass(:) = d_zero
     defcharge(:) = d_zero
     call adjust_mem(2*ndeftypes*dp)
     deftype(:) = 'unknown'
     call adjust_mem(ndeftypes*lblen)
     inpformat  = 'unknown'
-    unit_style = 'unknown'
-    call adjust_mem(2*(lblen+sp))
+    call adjust_mem(1*(lblen+sp))
     topfile = 'unknown'
     posfile = 'unknown'
     velfile = 'unknown'
@@ -67,7 +76,6 @@ contains
     use io
     use atoms, only: atoms_init, atoms_replicate, types_init
     use cell, only: set_cell, cell_replicate
-    use units, only: set_units
     use memory, only: alloc_vec, clear_vec, memory_print
     integer :: ierr, topchannel, poschannel, velchannel
 
@@ -90,7 +98,6 @@ contains
 
        write(stdout,*) separator
        write(stdout,*) 'Max. number of atom types: ', maxtypes
-       write(stdout,*) 'Unit style selected  : ', trim(unit_style)
        write(stdout,*) 'System info format   : ', trim(inpformat)
        write(stdout,*) 'Topology read from   : ', trim(topfile)
        write(stdout,*) 'Positions read from  : ', trim(posfile)
@@ -98,7 +105,6 @@ contains
        write(stdout,*) separator
 
        ! initialize system storage
-       call set_units(trim(unit_style))
        call atoms_init(maxtypes)
        call types_init(deftype,maxtypes)
        call set_cell(origin,cellparam,ortho_cell)
