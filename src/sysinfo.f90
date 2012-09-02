@@ -18,11 +18,11 @@ module sysinfo_io
   real(kind=dp) :: cellparam(6) ! a, b, c, cosalpha, cosbeta, cosgamma
   real(kind=dp), dimension(ndeftypes) :: defmass, defcharge
   character(len=lblen), dimension(ndeftypes) :: deftype
-  character(len=lblen) :: inpformat
+  character(len=lblen) :: inpformat, unit_style
   character(len=lilen) :: topfile, posfile, velfile
 
   namelist /sysinfo/ maxtypes, cellparam, defmass, defcharge, deftype, &
-       inpformat, topfile, posfile, velfile
+       inpformat, unit_style, topfile, posfile, velfile
 
   public :: sysinfo_init, sysinfo_read, sysinfo_write
 
@@ -41,8 +41,9 @@ contains
     call adjust_mem(2*ndeftypes*dp)
     deftype(:) = 'unknown'
     call adjust_mem(ndeftypes*lblen)
-    inpformat = 'unknown'
-    call adjust_mem(lblen+sp)
+    inpformat  = 'unknown'
+    unit_style = 'unknown'
+    call adjust_mem(2*(lblen+sp))
     topfile = 'unknown'
     posfile = 'unknown'
     velfile = 'unknown'
@@ -54,6 +55,7 @@ contains
     use io
     use atoms, only: atoms_init, atoms_replicate, types_init
     use cell, only: cell_init
+    use units, only: set_units
     use memory, only: alloc_vec, clear_vec, memory_print
     integer :: ierr, topchannel, poschannel, velchannel
 
@@ -76,6 +78,7 @@ contains
 
        write(stdout,*) separator
        write(stdout,*) 'Max. number of atom types: ', maxtypes
+       write(stdout,*) 'Unit style selected  : ', trim(unit_style)
        write(stdout,*) 'System info format   : ', trim(inpformat)
        write(stdout,*) 'Topology read from   : ', trim(topfile)
        write(stdout,*) 'Positions read from  : ', trim(posfile)
@@ -83,6 +86,7 @@ contains
        write(stdout,*) separator
 
        ! initialize system storage
+       call set_units(trim(unit_style))
        call atoms_init(maxtypes)
        call types_init(deftype,maxtypes)
        call cell_init
