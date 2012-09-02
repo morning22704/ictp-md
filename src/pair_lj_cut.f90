@@ -43,7 +43,7 @@ contains
     lj4%sizex=-1
     lj4%sizey=-1
     call adjust_mem(8*(dp+2*sp))
-    write(stdout,*) 'Adding pair style: lj/cut'
+    if (mp_ioproc()) write(stdout,*) 'Adding pair style: lj/cut'
   end subroutine pair_lj_cut_init
 
   subroutine read_coeffs(channel,ntypes,cutoff_max,setflag)
