@@ -7,12 +7,12 @@ module neighbor_io
   implicit none
   private
   real(kind=dp) :: skin, ratio, dx, dy, dz
-  integer :: nsplit, nx, ny, nz
+  integer :: nlevel, nx, ny, nz
   type(int_vec) :: nlist
   logical :: newton
   public neighbor_init, neighbor_read, neighbor_write, is_newton
 
-  namelist /neighbor/ skin, nsplit, newton
+  namelist /neighbor/ skin, nlevel, newton
 
 contains
 
@@ -23,7 +23,7 @@ contains
     dx = -d_one
     dy = -d_one
     dz = -d_one
-    nsplit = 1
+    nlevel = 1
     nx = 1
     ny = 1
     nz = 1
@@ -56,8 +56,8 @@ contains
           call mp_error('Parameter skin must be > 0.0',ierr)
        endif
 
-       if (nsplit <= 0) then
-          call mp_error('Parameter nsplit must be > 0',ierr)
+       if (nlevel <= 0) then
+          call mp_error('Parameter nlevel must be > 0',ierr)
        endif
 
 !       write(stdout,*) separator
