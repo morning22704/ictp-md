@@ -161,8 +161,8 @@ contains
        call memory_print
     end if ! mp_ioproc()
 
+    call cell_replicate
     call atoms_replicate
-    ! call cell_replicate
 
   end subroutine sysinfo_read
 
