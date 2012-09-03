@@ -98,6 +98,7 @@ contains
   subroutine cell_replicate
     use message_passing, only : mp_bcast
 
+    call mp_bcast(ortho_cell)
     call mp_bcast(origin,3)
     call mp_bcast(hmat,6)
     call mp_bcast(hinv,6)
