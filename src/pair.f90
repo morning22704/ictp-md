@@ -19,9 +19,11 @@ module pair_io
   character(len=lblen) :: pair_style !< String indicating the type of potential
   character(len=lblen) :: coul_style !< String indicating the type of potential
 
-  public :: pair_init, pair_read, pair_write
   namelist /pair/ cutoff_pair, cutoff_coul, shift_pot, do_coulomb, &
        pair_style, coul_style
+
+  public :: pair_init, pair_read, pair_write
+  public :: get_max_cutoff
 
 contains
 
@@ -141,5 +143,11 @@ contains
 
     endif
   end subroutine pair_write
+
+  function get_max_cutoff()
+    real(kind=dp) :: get_max_cutoff
+
+    get_max_cutoff = cutoff_max
+  end function get_max_cutoff
 
 end module pair_io

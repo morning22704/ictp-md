@@ -36,6 +36,7 @@ module sysinfo_io
        defmass, defcharge, deftype, inpformat, topfile, posfile, velfile
 
   public :: sysinfo_init, sysinfo_read, sysinfo_write
+  public :: get_skin, get_nlevel
 
 contains
 
@@ -309,5 +310,17 @@ contains
        velfile=tmp_velfile
     end if
   end subroutine sysinfo_write
+
+  function get_skin()
+    real(kind=dp) :: get_skin
+
+    get_skin = neigh_skin
+  end function get_skin
+
+  function get_nlevel()
+    integer :: get_nlevel
+
+    get_nlevel = neigh_level
+  end function get_nlevel
 
 end module sysinfo_io

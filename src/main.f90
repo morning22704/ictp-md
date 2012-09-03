@@ -8,13 +8,14 @@
 subroutine basic_setup
   use header
   ! use timer
-  use memory, only : memory_init, memory_print
-  use utils, only: utils_init
+  use memory,          only : memory_init, memory_print
+  use utils,           only : utils_init
   ! parallel programming modules
   use message_passing, only : mp_init, mp_header, mp_ioproc
-  use threading, only : thr_init, thr_header
-  use input, only : input_init
-  use restart, only : restart_init
+  use threading,       only : thr_init, thr_header
+  use input,           only : input_init
+  use restart,         only : restart_init
+  use neighbor,        only : neighbor_init
   implicit none
 
   ! initialize basic modules as needed
@@ -22,7 +23,8 @@ subroutine basic_setup
   call memory_init
   call mp_init
   call thr_init
-  call utils_init
+  call neighbor_init
+call utils_init
 
   ! print banners
   if (mp_ioproc()) then
@@ -51,8 +53,9 @@ end subroutine basic_setup
 !! Ye, who enters here, beware of dragons.
 program ictp_md
   use message_passing, only : mp_finish
-  use input, only : input_read
-  use restart, only : restart_write
+  use input,           only : input_read
+  use neighbor,        only : neighbor_setup
+  use restart,         only : restart_write
   implicit none
 
   ! perform general setup tasks
@@ -60,6 +63,8 @@ program ictp_md
 
   ! read system settings from input
   call input_read
+
+  call neighbor_setup
 
   ! write out a restart file
   call restart_write(-1)

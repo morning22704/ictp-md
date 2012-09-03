@@ -7,7 +7,6 @@ module input
   use control_io
   use sysinfo_io
   use pair_io
-  use neighbor_io
   implicit none
 
   private
@@ -20,7 +19,6 @@ contains
     call control_init
     call sysinfo_init
     call pair_init
-    call neighbor_init
   end subroutine input_init
 
   !> Read input and restart information from all submodules
@@ -28,7 +26,6 @@ contains
     call control_read
     call sysinfo_read
     call pair_read
-    call neighbor_read
   end subroutine input_read
 
 end module input
