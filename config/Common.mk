@@ -30,7 +30,7 @@ clean:
 # generate version header
 version.f90: .ver1 $(SRC) $(PPS) ../config/mkversion.pl ../config/Common.mk
 	@perl ../config/mkversion.pl $(NAME) $(VERSION) \
-		FC="$(FC)" FCFLAGS="$(FCFLAGS)"
+		"$(FC)" "$(FCFLAGS)"
 
 .ver1:
 	@git log -n 1 --pretty=oneline > .ver1

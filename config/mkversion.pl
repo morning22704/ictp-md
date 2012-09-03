@@ -4,7 +4,7 @@
 use strict;
 use Socket;
 
-my ($name,$date,$flags,$version,$host,$githash,$gitdate,$gitauthor);
+my ($name,$date,$compiler,$flags,$version,$host,$githash,$gitdate,$gitauthor);
 $host  = `hostname -s`;
 chomp $host;
 $date  = localtime();
@@ -21,7 +21,8 @@ die "usage: perl $0 <project name> <project version> <compile flags>\n"
 
 $name = shift @ARGV;
 $version = shift @ARGV;
-$flags = join ' ', @ARGV;
+$compiler = shift @ARGV;
+$flags = shift @ARGV;
 
 open VER, "> new.version.f90"
   or die "Could not open temporary output file for writing: $!\n";
@@ -48,12 +49,13 @@ subroutine version
   write (stdout,*) ' ${name} v${version} '
   write (stdout,*) '=================='
   write (stdout,*) separator
-  write (stdout,*) 'Compile date : ${date} on ${host}'
-  write (stdout,*) 'Compile flags: ${flags}'
+  write (stdout,*) 'Compiled ${date} on ${host}'
+  write (stdout,*) 'Compiler : ${compiler}'
+  write (stdout,*) 'Flags : ${flags}'
   write (stdout,*) separator
-  write (stdout,*) 'Last commit  : ${githash}'
-  write (stdout,*) 'Commit date  : ${gitdate}'
-  write (stdout,*) 'Commit author: ${gitauthor}'
+  write (stdout,*) 'Last commit   : ${githash}'
+  write (stdout,*) 'Commit date   : ${gitdate}'
+  write (stdout,*) 'Commit author : ${gitauthor}'
 end subroutine version
 end module header
 EOF
