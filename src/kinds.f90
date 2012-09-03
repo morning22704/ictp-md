@@ -47,4 +47,12 @@ module kinds
      integer :: sizex, sizey    !< dimensions of data matrix
   end type int_mat
 
+  !> Derived data type for a single neighbor cell
+  type neigh_cell
+     real(kind=dp)    :: offset(3) !< offset of the cell relative to original
+     integer, pointer :: list(:)   !< list of atom indices in cell
+     integer :: nlist              !< number of atoms in cell
+     logical :: is_ghost           !< true if this is not a principal cell
+  end type neigh_cell
+
 end module kinds
