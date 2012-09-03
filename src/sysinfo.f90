@@ -75,7 +75,7 @@ contains
   !> Read in input for the sysinfo module
   subroutine sysinfo_read
     use io
-    use atoms, only: atoms_init, atoms_replicate, types_init
+    use atoms, only: atoms_init, atoms_replicate, types_init, get_natoms
     use cell, only: set_cell, cell_replicate
     use memory, only: alloc_vec, clear_vec, memory_print
     integer :: ierr, topchannel, poschannel, velchannel
@@ -98,11 +98,11 @@ contains
        endif
 
        write(stdout,*) separator
-       write(stdout,*) 'Max. number of atom types: ', maxtypes
-       write(stdout,*) 'System info format   : ', trim(inpformat)
-       write(stdout,*) 'Topology read from   : ', trim(topfile)
-       write(stdout,*) 'Positions read from  : ', trim(posfile)
-       write(stdout,*) 'Velocities read from : ', trim(velfile)
+       write(stdout,*) 'Max. number of atom types : ', maxtypes
+       write(stdout,*) 'System info format        : ', trim(inpformat)
+       write(stdout,*) 'Topology from             : ', trim(topfile)
+       write(stdout,*) 'Positions from            : ', trim(posfile)
+       write(stdout,*) 'Velocities from           : ', trim(velfile)
        write(stdout,*) separator
 
        ! initialize system storage
@@ -122,7 +122,7 @@ contains
           open(unit=topin, file=trim(topfile), form='formatted', &
                status='old', iostat=ierr)
           if (ierr /= 0) call mp_error('Failure opening topology file',ierr)
-          write(stdout,*) 'Using topology from file: ', trim(topfile)
+          write(stdout,*) 'Using topology from file  : ', trim(topfile)
           topchannel = topin
        end if
 
@@ -141,7 +141,7 @@ contains
           open(unit=geoin, file=trim(posfile), form='formatted', &
                status='old', iostat=ierr)
           if (ierr /= 0) call mp_error('Failure opening geometry file',ierr)
-          write(stdout,*) 'Using geometry from file: ', trim(posfile)
+          write(stdout,*) 'Using geometry from file  : ', trim(posfile)
           poschannel = geoin
        end if
 
@@ -160,6 +160,7 @@ contains
           call mp_error('Unknown or unsupported input data format',ierr)
        end if
 
+       write(stdout,*) 'Total number of atoms     : ', get_natoms()
        if (ortho_cell) then
           write(stdout,*) 'Orthogonal cell'
        else

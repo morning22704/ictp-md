@@ -91,11 +91,11 @@ contains
        end if
 
        write(stdout,*) separator
-       write(stdout,*) 'Pair style            : ', trim(pair_style)
-       write(stdout,*) 'Global pair cutoff    : ', cutoff_pair
+       write(stdout,*) 'Pair style                      : ',trim(pair_style)
+       write(stdout,*) 'Global pair cutoff              : ',cutoff_pair
        if (do_coulomb) then
-          write(stdout,*) 'Coulomb style         : ', trim(coul_style)
-          write(stdout,*) 'Global coulomb cutoff : ', cutoff_coul
+          write(stdout,*) 'Coulomb style                   : ',trim(coul_style)
+          write(stdout,*) 'Global coulomb cutoff           : ',cutoff_coul
        end if
        if (shift_pot) then
           write(stdout,*) 'Pair potential shifted to zero at cutoff'
