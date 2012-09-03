@@ -6,7 +6,7 @@ module neighbor
   use message_passing, only : mp_error, mp_ioproc, mp_bcast
   implicit none
   private
-  real(kind=dp) :: ratio, dx, dy, dz
+  real(kind=dp) :: dx, dy, dz
   integer :: next_step, nx, ny, nz, ncells
   logical :: first_call
   type(neigh_cell), pointer :: list(:,:,:)
@@ -16,7 +16,6 @@ contains
 
   subroutine neighbor_init
     use memory, only : adjust_mem
-    ratio = 2.0_dp
     dx = -d_one
     dy = -d_one
     dz = -d_one
@@ -27,7 +26,7 @@ contains
     next_step = -1
     first_call = .true.
     nullify(list)
-    call adjust_mem(5*dp+4*sp)
+    call adjust_mem(dp+3*dp+6*sp)
   end subroutine neighbor_init
 
   ! read neighbor list parameters
@@ -37,13 +36,14 @@ contains
     use memory,     only : adjust_mem, memory_print
     use cell,       only : get_hmat
     use pair_io,    only : get_max_cutoff
-    use sysinfo_io, only : get_skin, get_nlevel
+    use sysinfo_io, only : get_neigh_nlevel, get_neigh_ratio, get_neigh_skin
     integer :: nlevel, nghosts, nlist, i, j, k, ip, jp, kp
-    real(kind=dp) :: cutoff, hmat(6), offset(3)
+    real(kind=dp) :: cutoff, ratio, hmat(6), offset(3)
 
     call get_hmat(hmat)
-    cutoff = get_max_cutoff() + get_skin()
-    nlevel = get_nlevel()
+    nlevel = get_neigh_nlevel()
+    ratio  = get_neigh_ratio()
+    cutoff = get_max_cutoff() + get_neigh_skin()
 
     ! deallocate previously allocated storage
     if (.not. first_call) then
@@ -128,6 +128,7 @@ contains
     ! print status only by io task and only on first call
     if (first_call .and. mp_ioproc()) then
        write(stdout,*) 'Cutoff used for neighbor cells  : ', cutoff
+       write(stdout,*) 'Actual/average atom/cell ratio  : ', ratio
        write(stdout,*) 'Number of cell levels           : ', nlevel
        write(stdout,fmt='(A,I5,A,I5,A,I5,A,I12,A)') ' Using ', &
             nx, ' x', ny, ' x', nz, ' =', ncells, ' principal cells'

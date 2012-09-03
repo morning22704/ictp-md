@@ -23,6 +23,7 @@ module sysinfo_io
   real(kind=dp) :: cellparam(6)         !< a, b, c, alpha, beta, gamma
   real(kind=dp) :: origin(3)            !< simulation cell origin
   real(kind=dp) :: neigh_skin           !< neighborlist skin distance
+  real(kind=dp) :: neigh_ratio          !< max actual/average atoms/cell ratio
   real(kind=dp) :: defmass(ndeftypes)   !< default masses for types
   real(kind=dp) :: defcharge(ndeftypes) !< default charges for types
   character(len=lblen) :: deftype(ndeftypes) !< default atom labels
@@ -32,11 +33,11 @@ module sysinfo_io
   character(len=lilen) :: velfile    !< name of velocity file
 
   namelist /sysinfo/ maxtypes, neigh_level, neigh_delay, neigh_every, &
-       neigh_check, ortho_cell, cellparam, neigh_skin, &
+       neigh_check, ortho_cell, cellparam, neigh_skin, neigh_ratio, &
        defmass, defcharge, deftype, inpformat, topfile, posfile, velfile
 
   public :: sysinfo_init, sysinfo_read, sysinfo_write
-  public :: get_skin, get_nlevel
+  public :: get_neigh_nlevel, get_neigh_ratio, get_neigh_skin
 
 contains
 
@@ -54,6 +55,7 @@ contains
     neigh_check = .true.
     call adjust_mem(2*sp)
     neigh_skin = d_one
+    neigh_ratio = 2.5_dp
     cellparam(:) = d_zero
     cellparam(4:6) = 90.0_dp
     origin(:) = d_zero
@@ -317,16 +319,19 @@ contains
     end if
   end subroutine sysinfo_write
 
-  function get_skin()
-    real(kind=dp) :: get_skin
+  function get_neigh_nlevel()
+    integer :: get_neigh_nlevel
+    get_neigh_nlevel = neigh_level
+  end function get_neigh_nlevel
 
-    get_skin = neigh_skin
-  end function get_skin
+  function get_neigh_ratio()
+    real(kind=dp) :: get_neigh_ratio
+    get_neigh_ratio = neigh_ratio
+  end function get_neigh_ratio
 
-  function get_nlevel()
-    integer :: get_nlevel
-
-    get_nlevel = neigh_level
-  end function get_nlevel
+  function get_neigh_skin()
+    real(kind=dp) :: get_neigh_skin
+    get_neigh_skin = neigh_skin
+  end function get_neigh_skin
 
 end module sysinfo_io
