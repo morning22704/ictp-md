@@ -168,6 +168,11 @@ contains
        call memory_print
     end if ! mp_ioproc()
 
+    call mp_bcast(neigh_level)
+    call mp_bcast(neigh_delay)
+    call mp_bcast(neigh_every)
+    call mp_bcast(neigh_check)
+    call mp_bcast(neigh_skin)
     call cell_replicate
     call atoms_replicate
 
