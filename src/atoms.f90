@@ -9,18 +9,19 @@ module atoms
   implicit none
 
   private
+  type (xyz_vec)   :: x_r, x_s, vel, for
+  type (dp_vec)    :: chg, mss
+  type (int_vec)   :: typ, idx, map, img
+  type (label_vec) :: lbl
   integer :: natoms, ntypes
   logical :: valid_x_r, valid_x_s
   logical :: have_chg, have_pos, have_vel
   integer, parameter :: ndeftypes = 16
-  type (xyz_vec)   :: x_r, x_s, vel, for
-  type (dp_vec)    :: chg, mss
-  type (int_vec)   :: typ, idx, map
-  type (label_vec) :: lbl
 
-  public :: atoms_init, atoms_resize, atoms_replicate, types_init
+  public :: atoms_init, atoms_setup, atoms_replicate, types_init
   public :: set_type, set_idx, set_mass, set_charge, set_pos, set_vel
-  public :: get_ntypes, get_natoms, is_chg, is_pos, is_vel
+  public :: get_ntypes, get_natoms, get_x_r, get_x_s
+  public :: is_chg, is_pos, is_vel
   public :: ndeftypes, xyz_write
 
 contains
@@ -46,18 +47,19 @@ contains
     call adjust_mem(4*(3*dp+sp))
     typ%size = -1
     idx%size = -1
+    img%size = -1
     map%size = -1
     chg%size = -1
     mss%size = -1
     lbl%size = -1
-    call adjust_mem(6*(dp+sp))
+    call adjust_mem(7*(dp+sp))
 
     call alloc_vec(mss,maxtypes)
     call alloc_vec(lbl,maxtypes)
   end subroutine atoms_init
 
-  subroutine atoms_resize(size)
-    use memory, only: alloc_vec
+  subroutine atoms_setup(size)
+    use memory, only: alloc_vec, clear_vec
     integer, intent(in) :: size
     integer :: nthr
 
@@ -68,10 +70,12 @@ contains
     call alloc_vec(for,size*nthr)
     call alloc_vec(typ,size)
     call alloc_vec(idx,size)
+    call alloc_vec(img,size)
     call alloc_vec(map,size)
     call alloc_vec(chg,size)
     natoms = size
-  end subroutine atoms_resize
+    call clear_vec(img)
+  end subroutine atoms_setup
 
   subroutine atoms_replicate
     use memory, only: alloc_vec
@@ -85,6 +89,7 @@ contains
     valid_x_s = .false.
     call mp_bcast(typ)
     call mp_bcast(idx)
+    call mp_bcast(img)
     call mp_bcast(have_chg)
     if (have_chg) call mp_bcast(chg)
     call mp_bcast(mss)
@@ -237,6 +242,24 @@ contains
 
     get_natoms = natoms
   end function get_natoms
+
+  subroutine get_x_r(x,y,z)
+    real(kind=dp), pointer :: x(:), y(:), z(:)
+
+    if (.not. valid_x_r) call lambda2x
+    x => x_r%x
+    y => x_r%y
+    z => x_r%z
+  end subroutine get_x_r
+
+  subroutine get_x_s(x,y,z)
+    real(kind=dp), pointer :: x(:), y(:), z(:)
+
+    if (.not. valid_x_s) call x2lambda
+    x => x_s%x
+    y => x_s%y
+    z => x_s%z
+  end subroutine get_x_s
 
   function is_chg()
     logical :: is_chg
