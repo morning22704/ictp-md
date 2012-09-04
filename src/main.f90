@@ -54,7 +54,7 @@ end subroutine basic_setup
 program ictp_md
   use message_passing, only : mp_finish
   use input,           only : input_read
-  use neighbor,        only : neighbor_setup
+  use neighbor,        only : neighbor_setup, neighbor_build
   use restart,         only : restart_write
   implicit none
 
@@ -65,6 +65,7 @@ program ictp_md
   call input_read
 
   call neighbor_setup
+  call neighbor_build
 
   ! write out a restart file
   call restart_write(-1)

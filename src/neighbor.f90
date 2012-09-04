@@ -29,7 +29,7 @@ contains
     call adjust_mem(dp+3*dp+6*sp)
   end subroutine neighbor_init
 
-  ! read neighbor list parameters
+  ! do (occasional) neighbor list preparations
   subroutine neighbor_setup
     use io
     use atoms,      only : get_natoms
@@ -142,7 +142,31 @@ contains
   end subroutine neighbor_setup
 
   subroutine neighbor_build
-!    type(xyz_vec), pointer :: pos
+    use io
+    use atoms,      only : get_natoms, get_x_s, get_x_r
+    use sysinfo_io, only : get_neigh_nlevel
+    real(kind=dp), pointer :: x(:), y(:), z(:)
+    real(kind=dp), pointer :: xr(:), yr(:), zr(:)
+    real(kind=dp) :: delta(3)
+    integer :: nlevel, natoms, i, j, k, ix, iy, iz, imgx, imgy, imgz
+
+    natoms = get_natoms()
+    nlevel = get_neigh_nlevel()
+    call get_x_s(x,y,z)
+    call get_x_r(xr,yr,zr)
+
+    do i=1,natoms
+       ix = int(x(i)/dx + d_one)
+       iy = int(y(i)/dy + d_one)
+       iz = int(z(i)/dz + d_one)
+       if (ix < 1)  print*, 'ix:',i,ix,x(i),xr(i)
+       if (ix > nx) print*, 'ix:',i,ix,x(i),xr(i)
+       if (iy < 1)  print*, 'iy:',i,iy,y(i),yr(i)
+       if (iy > ny) print*, 'iy:',i,iy,y(i),yr(i)
+       if (iz < 1)  print*, 'iz:',i,iz,z(i),zr(i)
+       if (iz > nz) print*, 'iz:',i,iz,z(i),zr(i)
+       if (i < 100) write(stdout,fmt='(4I5,3F6.3)') i,ix,iy,iz,x(i),y(i),z(i)
+    end do
   end subroutine neighbor_build
 
 end module neighbor
