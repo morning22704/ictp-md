@@ -9,7 +9,7 @@ module kinds
   integer, parameter :: lblen = 16  !< length of atom/type label strings
   integer, parameter :: lilen = 252 !< length of line/file strings
 
-  !> Derived data type to hold a 3-tuple flo vector with associated size
+  !> Derived data type to hold a 3-tuple floating point vector with size
   type xyz_vec
      real(kind=dp), pointer :: x(:) !< x component of vector
      real(kind=dp), pointer :: y(:) !< y component of vector

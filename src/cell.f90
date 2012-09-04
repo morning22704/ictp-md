@@ -41,7 +41,7 @@ contains
     real(kind=dp) :: b, c
 
     ortho_cell = is_ortho
-    origin = new_origin
+    origin(:) = new_origin(:)
 
     if (ortho_cell) then
        hmat(1:3) = new_cellparam(1:3)
