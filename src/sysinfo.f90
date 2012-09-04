@@ -33,7 +33,7 @@ module sysinfo_io
   character(len=lilen) :: velfile    !< name of velocity file
 
   namelist /sysinfo/ maxtypes, neigh_level, neigh_delay, neigh_every, &
-       neigh_check, ortho_cell, cellparam, neigh_skin, neigh_ratio, &
+       neigh_check, ortho_cell, origin, cellparam, neigh_skin, neigh_ratio, &
        defmass, defcharge, deftype, inpformat, topfile, posfile, velfile
 
   public :: sysinfo_init, sysinfo_read, sysinfo_write
@@ -56,9 +56,9 @@ contains
     call adjust_mem(2*sp)
     neigh_skin = d_one
     neigh_ratio = 2.5_dp
+    origin(:) = d_zero
     cellparam(:) = d_zero
     cellparam(4:6) = 90.0_dp
-    origin(:) = d_zero
     call adjust_mem((1+3+6)*dp)
     defmass(:) = d_zero
     defcharge(:) = d_zero
@@ -191,7 +191,7 @@ contains
 
     read(channel, fmt=*, iostat=ierr) natoms
     if (ierr /= 0) call mp_error('Failure to read "natoms" from xyz file',ierr)
-    call atoms_resize(natoms)
+    call atoms_setup(natoms)
 
     read(channel, fmt='(A)', iostat=ierr) line
     do i=1, natoms
@@ -227,7 +227,7 @@ contains
 
     read(channel, fmt=*, iostat=ierr) natoms
     if (ierr /= 0) call mp_error('Failure to read "natoms" from xyz file',ierr)
-    call atoms_resize(natoms)
+    call atoms_setup(natoms)
 
     read(channel, fmt='(A)', iostat=ierr) line
     do i=1, natoms
