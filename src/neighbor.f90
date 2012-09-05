@@ -7,7 +7,7 @@ module neighbor
   implicit none
   private
   real(kind=dp) :: dx, dy, dz
-  integer :: next_step, nx, ny, nz, ncells
+  integer :: next_step, nx, ny, nz, ncells, nlist, maxlist
   logical :: first_call
   type(neigh_cell), pointer :: list(:,:,:)
   public neighbor_init, neighbor_setup, neighbor_build
@@ -23,10 +23,12 @@ contains
     ny = -1
     nz = -1
     ncells = -1
+    nlist = 0
+    maxlist = 0
     next_step = -1
     first_call = .true.
     nullify(list)
-    call adjust_mem(dp+3*dp+6*sp)
+    call adjust_mem(dp+3*dp+8*sp)
   end subroutine neighbor_init
 
   ! do (occasional) neighbor list preparations
@@ -37,7 +39,7 @@ contains
     use cell,       only : get_hmat
     use pair_io,    only : get_max_cutoff
     use sysinfo_io, only : get_neigh_nlevel, get_neigh_ratio, get_neigh_skin
-    integer :: nlevel, nghosts, nlist, i, j, k, ip, jp, kp
+    integer :: nlevel, nghosts, i, j, k, ip, jp, kp
     real(kind=dp) :: cutoff, ratio, hmat(6), offset(3)
 
     call get_hmat(hmat)
@@ -95,13 +97,13 @@ contains
        do j=-nlevel,ny+nlevel+1
           if (j < 1) then
              jp = j + ny
-          offset(2) = -d_one
+             offset(2) = -d_one
           elseif (j > ny) then
              jp = j - ny
-          offset(2) = d_one
+             offset(2) = d_one
           else 
              jp = j
-          offset(2) = d_zero
+             offset(2) = d_zero
           end if
           do k=-nlevel,nz+nlevel+1
              if (k < 1) then
@@ -124,6 +126,7 @@ contains
        end do
     end do
     call adjust_mem((3*dp+dp+2*sp)*(ncells+nghosts) + nlist*sp*ncells)
+    call neighbor_build
 
     ! print status only by io task and only on first call
     if (first_call .and. mp_ioproc()) then
@@ -135,7 +138,10 @@ contains
        write(stdout,fmt='(A,G11.6,A,G11.6,A,G11.6)') ' Grid spacing  : ', &
             dx*hmat(1), ' x ', dy*hmat(2), ' x ', dz*hmat(3)
        write(stdout,*) 'Number of ghost cells           : ', nghosts
-       write(stdout,*) 'Maximum number of atoms/cell    : ', nlist
+       write(stdout,*) 'Maximum allowed atoms per cell  : ', nlist
+       write(stdout,*) 'Maximum actual atoms per cell   : ', maxlist
+       write(stdout,*) 'Average number of atoms per cell: ', &
+            dble(get_natoms())/dble(ncells)
        call memory_print
     end if
     first_call = .false.
@@ -143,30 +149,91 @@ contains
 
   subroutine neighbor_build
     use io
-    use atoms,      only : get_natoms, get_x_s, get_x_r
+    use atoms,      only : get_natoms, get_x_s, update_image
     use sysinfo_io, only : get_neigh_nlevel
     real(kind=dp), pointer :: x(:), y(:), z(:)
-    real(kind=dp), pointer :: xr(:), yr(:), zr(:)
-    real(kind=dp) :: delta(3)
-    integer :: nlevel, natoms, i, j, k, ix, iy, iz, imgx, imgy, imgz
+    integer :: nlevel, natoms, n, i, j, k, ix, iy, iz, ip, jp, kp
 
     natoms = get_natoms()
     nlevel = get_neigh_nlevel()
     call get_x_s(x,y,z)
-    call get_x_r(xr,yr,zr)
+
+    ! clear list entries
+    list(:,:,:)%nlist = 0
 
     do i=1,natoms
        ix = int(x(i)/dx + d_one)
        iy = int(y(i)/dy + d_one)
        iz = int(z(i)/dz + d_one)
-       if (ix < 1)  print*, 'ix:',i,ix,x(i),xr(i)
-       if (ix > nx) print*, 'ix:',i,ix,x(i),xr(i)
-       if (iy < 1)  print*, 'iy:',i,iy,y(i),yr(i)
-       if (iy > ny) print*, 'iy:',i,iy,y(i),yr(i)
-       if (iz < 1)  print*, 'iz:',i,iz,z(i),zr(i)
-       if (iz > nz) print*, 'iz:',i,iz,z(i),zr(i)
-       if (i < 100) write(stdout,fmt='(4I5,3F6.3)') i,ix,iy,iz,x(i),y(i),z(i)
+       if (ix < 1) then
+          n = (ix - nx) / nx
+          ix = ix - n*nx
+          call update_image(i,n,'x')
+       else if (ix > nx) then
+          n = ix / nx
+          ix = ix - n*nx
+          call update_image(i,n,'x')
+       end if
+       if (iy < 1) then
+          n = (iy - ny) / ny
+          iy = iy - n*ny
+          call update_image(i,n,'y')
+       else if (iy > ny) then
+          n = iy / ny
+          iy = iy - n*ny
+          call update_image(i,n,'y')
+       end if
+       if (iz < 1) then
+          n = (iz - nz) / nz
+          iz = iz - n*nz
+          call update_image(i,n,'z')
+       else if (iz > nz) then
+          n = iz / nz
+          iz = iz - n*nz
+          call update_image(i,n,'z')
+       end if
+       n = list(ix,iy,iz)%nlist + 1
+       if (n > maxlist) maxlist = n
+       if (n > nlist) &
+            call mp_error('Cell list overflow. Increase neigh_ratio.',n)
+       list(ix,iy,iz)%nlist = n
+       list(ix,iy,iz)%list(n) = i
     end do
+
+    ! update nlist data in ghost cells
+    do i=-nlevel,nx+nlevel+1
+       if (i < 1) then
+          ip = i + nx
+       elseif (i > nx) then
+          ip = i - nx
+       else 
+          ip = i
+       end if
+
+       do j=-nlevel,ny+nlevel+1
+          if (j < 1) then
+             jp = j + ny
+          elseif (j > ny) then
+             jp = j - ny
+          else 
+             jp = j
+          end if
+
+          do k=-nlevel,nz+nlevel+1
+             if (k < 1) then
+                kp = k + nz
+             elseif (k > nz) then
+                kp = k - nz
+             else
+                kp = k
+             end if
+             if (i<1 .or. i>nx .or. j<1 .or. j>ny .or. k<1 .or. k>nz) then
+                list(i,j,k)%nlist = list(ip,jp,kp)%nlist
+             endif
+          end do
+       end do
+    end do
+
   end subroutine neighbor_build
 
 end module neighbor

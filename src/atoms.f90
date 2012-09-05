@@ -18,7 +18,7 @@ module atoms
   logical :: have_chg, have_pos, have_vel
   integer, parameter :: ndeftypes = 16
 
-  public :: atoms_init, atoms_setup, atoms_replicate, types_init
+  public :: atoms_init, atoms_setup, atoms_replicate, types_init, update_image
   public :: set_type, set_idx, set_mass, set_charge, set_pos, set_vel
   public :: get_ntypes, get_natoms, get_x_r, get_x_s
   public :: is_chg, is_pos, is_vel
@@ -362,4 +362,26 @@ contains
     end do
   end subroutine remap
 
+  subroutine update_image(i,n,d)
+    integer, intent(in) :: i, n
+    character, intent(in) :: d
+    integer :: m, o
+
+    if (d == 'x') then
+       o = 1
+    else if (d == 'y') then
+       o = 11
+    else if (d == 'z') then
+       o = 21
+    else
+       o = 31
+    endif
+
+    m = 0
+    call mvbits(img%v(i),o,10,m,1)
+    if (m > 512) m = m - 1024 
+    m = m + n
+    call mvbits(m,1,10,img%v(i),o)
+
+  end subroutine update_image
 end module atoms
