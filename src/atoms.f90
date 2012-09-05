@@ -18,11 +18,12 @@ module atoms
   logical :: have_chg, have_pos, have_vel
   integer, parameter :: ndeftypes = 16
 
-  public :: atoms_init, atoms_setup, atoms_replicate, types_init, update_image
+  public :: atoms_init, atoms_setup, atoms_replicate, types_init
   public :: set_type, set_idx, set_mass, set_charge, set_pos, set_vel
   public :: get_ntypes, get_natoms, get_x_r, get_x_s
   public :: is_chg, is_pos, is_vel
-  public :: ndeftypes, xyz_write
+  public :: update_image, force_clear, xyz_write
+  public :: ndeftypes
 
 contains
 
@@ -204,16 +205,16 @@ contains
          ' Set position of atom ',id,' to : ',pos(1),pos(2),pos(3)
   end subroutine set_pos
 
-  subroutine set_vel(id,vel)
+  subroutine set_vel(id,v)
     integer, intent(in) :: id
-    real(kind=dp), dimension(3), intent(in) :: vel
+    real(kind=dp), dimension(3), intent(in) :: v
 
     have_vel = .true.
-    x_r%x(id) = vel(1)
-    x_r%y(id) = vel(2)
-    x_r%z(id) = vel(3)
+    vel%x(id) = v(1)
+    vel%y(id) = v(2)
+    vel%z(id) = v(3)
     if (is_debug()) write(stdout,fmt='(A,I6,A,3F12.4)') &
-         ' Set velocity of atom ',id,' to : ',vel(1),vel(2),vel(3)
+         ' Set velocity of atom ',id,' to : ',v(1),v(2),v(3)
   end subroutine set_vel
 
   subroutine set_mass(id,mass)
@@ -400,4 +401,9 @@ contains
     call mvbits(m,1,10,img%v(i),o)
 
   end subroutine update_image
+
+  subroutine force_clear
+    use memory, only: clear_vec
+    call clear_vec(for)
+  end subroutine force_clear
 end module atoms

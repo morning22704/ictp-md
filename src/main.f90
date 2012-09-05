@@ -54,6 +54,7 @@ end subroutine basic_setup
 program ictp_md
   use message_passing, only : mp_finish
   use input,           only : input_read
+  use atoms,           only : force_clear
   use neighbor,        only : neighbor_setup, neighbor_build
   use restart,         only : restart_write
   implicit none
@@ -64,8 +65,9 @@ program ictp_md
   ! read system settings from input
   call input_read
 
+  ! initialize MD
   call neighbor_setup
-  call neighbor_build
+  call force_clear
 
   ! write out a restart file
   call restart_write(-1)

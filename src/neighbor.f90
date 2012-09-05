@@ -8,8 +8,9 @@ module neighbor
   private
   real(kind=dp) :: dx, dy, dz
   integer :: next_step, nx, ny, nz, ncells, nlist, maxlist
-  logical :: first_call
+  logical :: first_call, do_check
   type(neigh_cell), pointer :: list(:,:,:)
+  type(xyz_vec) :: old_pos
   public :: neighbor_init, neighbor_setup, neighbor_build
   public :: get_ncells, get_cell, cell2index
 
@@ -29,8 +30,10 @@ contains
     maxlist = 0
     next_step = -1
     first_call = .true.
+    do_check = .false.
     nullify(list)
-    call adjust_mem(dp+3*dp+8*sp)
+    old_pos%size = -1
+    call adjust_mem(3*dp+9*sp+dp+(3*dp+sp))
   end subroutine neighbor_init
 
   !> Set up, allocate, and prepare  the basic cell list data
@@ -38,11 +41,11 @@ contains
   subroutine neighbor_setup
     use io
     use atoms,      only : get_natoms
-    use memory,     only : adjust_mem, memory_print
+    use memory,     only : adjust_mem, memory_print, alloc_vec
     use cell,       only : get_hmat
     use pair_io,    only : get_max_cutoff
     use sysinfo_io, only : get_neigh_nlevel, get_neigh_ratio, get_neigh_skin, &
-         get_newton
+         get_neigh_check, get_newton
     integer :: nlevel, nlower, nghosts, i, j, k, ip, jp, kp
     real(kind=dp) :: cutoff, ratio, hmat(6), offset(3)
 
@@ -50,6 +53,7 @@ contains
     nlevel = get_neigh_nlevel()
     ratio  = get_neigh_ratio()
     cutoff = get_max_cutoff() + get_neigh_skin()
+    do_check = get_neigh_check()
 
     ! deallocate previously allocated storage
     if (.not. first_call) then
@@ -87,6 +91,7 @@ contains
     end if
     allocate(list(nlower:nx+nlevel+1,nlower:ny+nlevel+1,nlower:nz+nlevel+1))
 
+    if (do_check) call alloc_vec(old_pos,get_natoms())
     do i=1,nx
        do j=1,ny
           do k=1,nz

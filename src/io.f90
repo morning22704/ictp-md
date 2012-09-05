@@ -17,6 +17,8 @@ module io
   integer, parameter :: topout = 26 !< channel to be used for writing topologies
   integer, parameter :: geoin  = 35 !< channel to be used for reading geometries
   integer, parameter :: geoout = 36 !< channel to be used for writing geometries
+  integer, parameter :: velin  = 45 !< channel to be used for reading velocities
+  integer, parameter :: velout = 46 !< channel to be used for writing velocities
   !> string constant for separator lines
   character(len=55), parameter :: &
     separator = '-------------------------------------------------------'

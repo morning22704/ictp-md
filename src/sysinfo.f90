@@ -39,7 +39,8 @@ module sysinfo_io
        deftype, inpformat, topfile, posfile, velfile
 
   public :: sysinfo_init, sysinfo_read, sysinfo_write
-  public :: get_neigh_nlevel, get_neigh_ratio, get_neigh_skin, get_newton
+  public :: get_neigh_nlevel, get_neigh_ratio, get_neigh_skin, get_neigh_check
+  public :: get_newton
 
 contains
 
@@ -85,6 +86,11 @@ contains
     use memory, only: alloc_vec, clear_vec, memory_print
     integer :: ierr, topchannel, poschannel, velchannel
 
+    ! use illegal unit numbers as default to trigger errors
+    topchannel = -1
+    poschannel = -1
+    velchannel = -1
+
     ! input is only read by io task
     if (mp_ioproc()) then
 
@@ -104,6 +110,11 @@ contains
 
        write(stdout,*) separator
        write(stdout,*) 'Max. number of atom types : ', maxtypes
+       if (newton) then
+          write(stdout,*) 'Using Newton''s 3rd law    : Enabled'
+       else
+          write(stdout,*) 'Using Newton''s 3rd law    : Disabled'
+       end if
        write(stdout,*) 'System info format        : ', trim(inpformat)
        write(stdout,*) 'Topology from             : ', trim(topfile)
        write(stdout,*) 'Positions from            : ', trim(posfile)
@@ -150,31 +161,59 @@ contains
           poschannel = geoin
        end if
 
+       if (trim(velfile) == 'internal') then
+          if (is_restart()) then
+             write(stdout,*) 'Using internal velocities from restart'
+             velchannel = resin
+          else
+             write(stdout,*) 'Using internal velocities from input'
+             velchannel = stdin
+          end if
+       else
+          if (trim(velfile) /= 'unknown') then
+             open(unit=velin, file=trim(velfile), form='formatted', &
+                  status='old', iostat=ierr)
+             if (ierr /= 0) &
+                  call mp_error('Failure opening velocities file',ierr)
+             write(stdout,*) 'Using velocities from file  : ', trim(velfile)
+             velchannel = velin
+          end if
+       end if
+
        if (trim(inpformat) == 'lammps') then
           call mp_error('LAMMPS input format currently unsupported',ierr)
        else if (trim(inpformat) == 'xyz') then
           call xyz_topogeom(topchannel)
           if (topchannel == topin) close (unit=topin)
+          if (trim(velfile) /= 'unknown') then
+             call xyz_velocity(velchannel)
+             if (velchannel == velin) close (unit=velin)
+          end if
        else if (trim(inpformat) == 'xyz/xyz') then
           call xyz_topology(topchannel)
           if (topchannel == topin) close (unit=topin)
           call xyz_geometry(poschannel)
           if (poschannel == geoin) close (unit=geoin)
+          if (trim(velfile) /= 'unknown') then
+             call xyz_velocity(velchannel)
+             if (velchannel == velin) close (unit=velin)
+          end if
        else if (trim(inpformat) == 'psf/xyz') then
+          call xyz_geometry(poschannel)
+          if (poschannel == geoin) close (unit=geoin)
+          if (trim(velfile) /= 'unknown') then
+             call xyz_velocity(velchannel)
+             if (velchannel == velin) close (unit=velin)
+          end if
        else
           call mp_error('Unknown or unsupported input data format',ierr)
        end if
 
        write(stdout,*) 'Total number of atoms     : ', get_natoms()
        if (ortho_cell) then
-          write(stdout,*) 'Orthogonal cell'
+          write(stdout,*) 'Cell geometry             : Orthogonal'
        else
-          write(stdout,*) 'Non-orthogonal cell'
-       end if
-       if (newton) then
-          write(stdout,*) 'Using Newton''s 3rd law'
-       else
-          write(stdout,*) 'Not using Newton''s 3rd law'
+          write(stdout,*) 'Cell geometry             : Triclinic'
        end if
        call memory_print
     end if ! mp_ioproc()
@@ -283,12 +322,35 @@ contains
     end do
   end subroutine xyz_geometry
 
+  subroutine xyz_velocity(channel)
+    use atoms, only: get_natoms, set_vel
+    integer, intent(in) :: channel
+    integer :: i, idx, ierr, natoms
+    real(kind=dp), dimension(3) :: vel
+    character(len=lilen) :: line
+
+    read(channel, fmt=*, iostat=ierr) natoms
+    if (ierr /= 0) call mp_error('Failure to read "natoms" from xyz file',ierr)
+    if (natoms /= get_natoms()) &
+         call mp_error('Number of atoms inconsistent with topology',natoms)
+
+    read(channel, fmt='(A)', iostat=ierr) line
+    do i=1, natoms
+       read(channel, fmt='(A)', iostat=ierr) line
+       line = adjustl(line)
+       idx = index(line,' ');
+       if (idx > 0) line = line(idx:)
+       read(line,fmt=*,iostat=ierr) vel(1),vel(2),vel(3)
+       if (ierr /= 0) &
+            call mp_error('Failure to read velocities from xyz file',ierr)
+       call set_vel(i,vel)
+    end do
+  end subroutine xyz_velocity
+
   ! write sysinfo parameters
   subroutine sysinfo_write
     use io
     use atoms, only: is_vel, xyz_write
-!    use cell, only: cell_write
-!    use memory, only: alloc_vec, clear_vec
     integer :: ierr
     character(len=lilen) :: tmp_topfile, tmp_posfile, tmp_velfile
 
@@ -342,6 +404,11 @@ contains
     real(kind=dp) :: get_neigh_skin
     get_neigh_skin = neigh_skin
   end function get_neigh_skin
+
+  function get_neigh_check()
+    logical :: get_neigh_check
+    get_neigh_check = neigh_check
+  end function get_neigh_check
 
   function get_newton()
     logical :: get_newton
