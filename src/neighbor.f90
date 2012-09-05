@@ -10,7 +10,7 @@ module neighbor
   integer :: next_step, nx, ny, nz, ncells, nlist, maxlist
   logical :: first_call
   type(neigh_cell), pointer :: list(:,:,:)
-  public neighbor_init, neighbor_setup, neighbor_build
+  public neighbor_init, neighbor_setup, neighbor_build, get_cell
 
 contains
 
@@ -235,5 +235,12 @@ contains
     end do
 
   end subroutine neighbor_build
+
+  function get_cell(i,j,k)
+    type(neigh_cell) :: get_cell
+    integer, intent(in) :: i,j,k
+
+    get_cell = list(i,j,k)
+  end function get_cell
 
 end module neighbor
