@@ -369,10 +369,16 @@ contains
 
     if (d == 'x') then
        o = 1
+       x_s%x(i) = x_s%x(i) + n*d_one
+       valid_x_r = .false.
     else if (d == 'y') then
        o = 11
+       x_s%y(i) = x_s%y(i) + n*d_one
+       valid_x_r = .false.
     else if (d == 'z') then
        o = 21
+       x_s%z(i) = x_s%z(i) + n*d_one
+       valid_x_r = .false.
     else
        o = 31
     endif
