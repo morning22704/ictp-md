@@ -20,6 +20,7 @@ module sysinfo_io
   integer :: neigh_every             !< frequency of neighbor update checks
   logical :: neigh_check             !< check if neighbor updates are needed
   logical :: ortho_cell              !< Cell is orthogonal
+  logical :: newton                  !< employ newton's 3rd law
   real(kind=dp) :: cellparam(6)         !< a, b, c, alpha, beta, gamma
   real(kind=dp) :: origin(3)            !< simulation cell origin
   real(kind=dp) :: neigh_skin           !< neighborlist skin distance
@@ -33,11 +34,12 @@ module sysinfo_io
   character(len=lilen) :: velfile    !< name of velocity file
 
   namelist /sysinfo/ maxtypes, neigh_level, neigh_delay, neigh_every, &
-       neigh_check, ortho_cell, origin, cellparam, neigh_skin, neigh_ratio, &
-       defmass, defcharge, deftype, inpformat, topfile, posfile, velfile
+       neigh_check, ortho_cell, newton, &
+       origin, cellparam, neigh_skin, neigh_ratio, defmass, defcharge, &
+       deftype, inpformat, topfile, posfile, velfile
 
   public :: sysinfo_init, sysinfo_read, sysinfo_write
-  public :: get_neigh_nlevel, get_neigh_ratio, get_neigh_skin
+  public :: get_neigh_nlevel, get_neigh_ratio, get_neigh_skin, get_newton
 
 contains
 
@@ -53,7 +55,8 @@ contains
     call adjust_mem(4*sp)
     ortho_cell = .true.
     neigh_check = .true.
-    call adjust_mem(2*sp)
+    newton = .true.
+    call adjust_mem(3*sp)
     neigh_skin = d_one
     neigh_ratio = 2.5_dp
     origin(:) = d_zero
@@ -168,6 +171,11 @@ contains
        else
           write(stdout,*) 'Non-orthogonal cell'
        end if
+       if (newton) then
+          write(stdout,*) 'Using Newton''s 3rd law'
+       else
+          write(stdout,*) 'Not using Newton''s 3rd law'
+       end if
        call memory_print
     end if ! mp_ioproc()
 
@@ -176,8 +184,9 @@ contains
     call mp_bcast(neigh_every)
     call mp_bcast(neigh_check)
     call mp_bcast(neigh_skin)
+    call mp_bcast(newton)
     call cell_replicate
-    call atoms_replicate
+    call atoms_replicate(newton)
 
   end subroutine sysinfo_read
 
@@ -191,7 +200,7 @@ contains
 
     read(channel, fmt=*, iostat=ierr) natoms
     if (ierr /= 0) call mp_error('Failure to read "natoms" from xyz file',ierr)
-    call atoms_setup(natoms)
+    call atoms_setup(natoms,newton)
 
     read(channel, fmt='(A)', iostat=ierr) line
     do i=1, natoms
@@ -227,7 +236,7 @@ contains
 
     read(channel, fmt=*, iostat=ierr) natoms
     if (ierr /= 0) call mp_error('Failure to read "natoms" from xyz file',ierr)
-    call atoms_setup(natoms)
+    call atoms_setup(natoms,newton)
 
     read(channel, fmt='(A)', iostat=ierr) line
     do i=1, natoms
@@ -333,5 +342,10 @@ contains
     real(kind=dp) :: get_neigh_skin
     get_neigh_skin = neigh_skin
   end function get_neigh_skin
+
+  function get_newton()
+    logical :: get_newton
+    get_newton = newton
+  end function get_newton
 
 end module sysinfo_io

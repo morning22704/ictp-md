@@ -10,10 +10,12 @@ module neighbor
   integer :: next_step, nx, ny, nz, ncells, nlist, maxlist
   logical :: first_call
   type(neigh_cell), pointer :: list(:,:,:)
-  public neighbor_init, neighbor_setup, neighbor_build, get_cell
+  public :: neighbor_init, neighbor_setup, neighbor_build
+  public :: get_ncells, get_cell, cell2index
 
 contains
 
+  !> Initialize variables of the neighbor module 
   subroutine neighbor_init
     use memory, only : adjust_mem
     dx = -d_one
@@ -31,15 +33,17 @@ contains
     call adjust_mem(dp+3*dp+8*sp)
   end subroutine neighbor_init
 
-  ! do (occasional) neighbor list preparations
+  !> Set up, allocate, and prepare  the basic cell list data
+  !! When called the first time, print out diagnostic info.
   subroutine neighbor_setup
     use io
     use atoms,      only : get_natoms
     use memory,     only : adjust_mem, memory_print
     use cell,       only : get_hmat
     use pair_io,    only : get_max_cutoff
-    use sysinfo_io, only : get_neigh_nlevel, get_neigh_ratio, get_neigh_skin
-    integer :: nlevel, nghosts, i, j, k, ip, jp, kp
+    use sysinfo_io, only : get_neigh_nlevel, get_neigh_ratio, get_neigh_skin, &
+         get_newton
+    integer :: nlevel, nlower, nghosts, i, j, k, ip, jp, kp
     real(kind=dp) :: cutoff, ratio, hmat(6), offset(3)
 
     call get_hmat(hmat)
@@ -49,6 +53,11 @@ contains
 
     ! deallocate previously allocated storage
     if (.not. first_call) then
+       if (get_newton()) then
+          nghosts = (nx+nlevel+1)*(ny+nlevel+1)*(nz+nlevel+1) - ncells
+       else
+          nghosts = (nx+2*nlevel+2)*(ny+2*nlevel+2)*(nz+2*nlevel+2) - ncells
+       end if
        do i=1,nx
           do j=1,ny
              do k=1,nz
@@ -67,10 +76,17 @@ contains
     dx = d_one/dble(nx)
     dy = d_one/dble(ny)
     dz = d_one/dble(nz)
-    nghosts = (nx+2*nlevel+2)*(ny+2*nlevel+2)*(nz+2*nlevel+2) - ncells
     nlist = int(dble(get_natoms())/dble(ncells)*ratio)
 
-    allocate(list(-nlevel:nx+nlevel+1,-nlevel:ny+nlevel+1,-nlevel:nz+nlevel+1))
+    if (get_newton()) then
+       nlower = 1
+       nghosts = (nx+nlevel+1)*(ny+nlevel+1)*(nz+nlevel+1) - ncells
+    else
+       nlower = -nlevel
+       nghosts = (nx+2*nlevel+2)*(ny+2*nlevel+2)*(nz+2*nlevel+2) - ncells
+    end if
+    allocate(list(nlower:nx+nlevel+1,nlower:ny+nlevel+1,nlower:nz+nlevel+1))
+
     do i=1,nx
        do j=1,ny
           do k=1,nz
@@ -83,7 +99,7 @@ contains
     end do
 
     offset(:) = d_zero
-    do i=-nlevel,nx+nlevel+1
+    do i=nlower,nx+nlevel+1
        if (i < 1) then
           ip = i + nx
           offset(1) = -d_one
@@ -94,7 +110,7 @@ contains
           ip = i
           offset(1) = d_zero
        end if
-       do j=-nlevel,ny+nlevel+1
+       do j=nlower,ny+nlevel+1
           if (j < 1) then
              jp = j + ny
              offset(2) = -d_one
@@ -105,7 +121,7 @@ contains
              jp = j
              offset(2) = d_zero
           end if
-          do k=-nlevel,nz+nlevel+1
+          do k=nlower,nz+nlevel+1
              if (k < 1) then
                 kp = k + nz
                 offset(3) = -d_one
@@ -147,12 +163,15 @@ contains
     first_call = .false.
   end subroutine neighbor_setup
 
+  !> Sort all atoms into their respective cells, update their
+  !! image flags (and implicitly wrap the coordinates for periodic
+  !! boundary conditions) and update the corresponding ghost cell data 
   subroutine neighbor_build
     use io
     use atoms,      only : get_natoms, get_x_s, update_image
-    use sysinfo_io, only : get_neigh_nlevel
+    use sysinfo_io, only : get_neigh_nlevel, get_newton
     real(kind=dp), pointer :: x(:), y(:), z(:)
-    integer :: nlevel, natoms, n, i, j, k, ix, iy, iz, ip, jp, kp
+    integer :: nlevel, natoms, nlower, n, i, j, k, ix, iy, iz, ip, jp, kp
 
     natoms = get_natoms()
     nlevel = get_neigh_nlevel()
@@ -201,7 +220,13 @@ contains
     end do
 
     ! update nlist data in ghost cells
-    do i=-nlevel,nx+nlevel+1
+    if (get_newton()) then
+       nlower = 1
+    else
+       nlower = -nlevel
+    end if
+
+    do i=nlower,nx+nlevel+1
        if (i < 1) then
           ip = i + nx
        elseif (i > nx) then
@@ -210,7 +235,7 @@ contains
           ip = i
        end if
 
-       do j=-nlevel,ny+nlevel+1
+       do j=nlower,ny+nlevel+1
           if (j < 1) then
              jp = j + ny
           elseif (j > ny) then
@@ -219,7 +244,7 @@ contains
              jp = j
           end if
 
-          do k=-nlevel,nz+nlevel+1
+          do k=nlower,nz+nlevel+1
              if (k < 1) then
                 kp = k + nz
              elseif (k > nz) then
@@ -236,11 +261,36 @@ contains
 
   end subroutine neighbor_build
 
+  !> Return the number of non-ghost cells
+  function get_ncells()
+    integer :: get_ncells
+
+    get_ncells = ncells
+  end function get_ncells
+
+  !> Return cell info based on i,j,k indices
+  !! @param i x index of the cell
+  !! @param j y index of the cell
+  !! @param k z index of the cell
   function get_cell(i,j,k)
     type(neigh_cell) :: get_cell
     integer, intent(in) :: i,j,k
 
     get_cell = list(i,j,k)
   end function get_cell
+
+  !> Return non-ghost cell info based on an index between 1 and ncells
+  !! @param idx Index of the cell
+  !! @param i x index of the cell
+  !! @param j y index of the cell
+  !! @param k z index of the cell 
+  subroutine cell2index(idx,i,j,k)
+    integer, intent(in)  :: idx
+    integer, intent(out) :: i,j,k
+
+    i = idx/(ny*nz)+1
+    j = mod(idx,ny*nz)/nz+1
+    k = mod(idx,nz)+1
+  end subroutine cell2index
 
 end module neighbor

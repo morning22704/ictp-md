@@ -58,12 +58,17 @@ contains
     call alloc_vec(lbl,maxtypes)
   end subroutine atoms_init
 
-  subroutine atoms_setup(size)
+  subroutine atoms_setup(size,newton)
     use memory, only: alloc_vec, clear_vec
     integer, intent(in) :: size
+    logical, intent(in) :: newton
     integer :: nthr
 
-    nthr = thr_get_num_threads()
+    if (newton) then
+       nthr = thr_get_num_threads()
+    else
+       nthr = 1
+    end if
     call alloc_vec(x_r,size)
     call alloc_vec(x_s,size)
     call alloc_vec(vel,size)
@@ -77,12 +82,17 @@ contains
     call clear_vec(img)
   end subroutine atoms_setup
 
-  subroutine atoms_replicate
+  subroutine atoms_replicate(newton)
     use memory, only: alloc_vec
     use message_passing, only: mp_bcast
+    logical, intent(in) :: newton
     integer :: nthr
 
-    nthr = thr_get_num_threads()
+    if (newton) then
+       nthr = thr_get_num_threads()
+    else
+       nthr = 1
+    end if
     call mp_bcast(natoms)
     call mp_bcast(x_r)
     valid_x_r = .true.
