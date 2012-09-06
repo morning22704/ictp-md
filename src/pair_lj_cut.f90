@@ -202,39 +202,91 @@ contains
     logical, intent(in) :: newton
     real(kind=dp), pointer :: x(:),y(:),z(:),fx(:),fy(:),fz(:)
     type(neigh_cell) :: icell, jcell
-    integer, pointer :: cell_pairs(:)
+    integer, pointer :: cell_pairs(:), atype(:)
     logical :: half_pair
-    integer :: n, i, j, k, in, jn, kn, npairs
+    integer :: n, npairs, i, j, in, jn, itype, jtype
+    real(kind=dp) :: xtmp, ytmp, ztmp, fxtmp, fytmp, fztmp, delx, dely, delz
+    real(kind=dp) :: rsq, r2inv, r6inv, fpair, epair, evdw, ioffs(3), joffs(3)
 
     npairs=get_npairs()
     call get_cell_pairs(cell_pairs)
     call get_x_s(x,y,z)
     call get_for(fx,fy,fz)
+    call get_typ(atype)
+    epair = d_zero
 
     do n=1,6*npairs-1,6
 
-       ! grab first cell
-       i = cell_pairs(n)
-       j = cell_pairs(n+1)
-       k = cell_pairs(n+2)
-       icell = get_cell(i,j,k)
+       icell = get_cell(cell_pairs(n+0),cell_pairs(n+1),cell_pairs(n+2))
+       call coord_s2r(icell%offset,ioffs)
 
-       ! grab second cell
-       in = cell_pairs(n+3)
-       jn = cell_pairs(n+4)
-       kn = cell_pairs(n+5)
-       jcell = get_cell(in,jn,kn)
+       jcell = get_cell(cell_pairs(n+3),cell_pairs(n+4),cell_pairs(n+5))
+       call coord_s2r(jcell%offset,joffs)
 
        ! determine if we need to skip half of the pairs
-       half_pair = .false.
-       if ((i==in).and.(i==in).and.(i==in).and.newton) half_pair=.true.
+       if ((icell%idx == jcell%idx).and.newton) then
+          half_pair = .true.
+       else
+          half_pair = .false.
+       end if
 
        ! loop over pairs of atoms between the two cells
        do i=1,icell%nlist
+          in = icell%list(i)
+          xtmp = x(in) + ioffs(1)
+          ytmp = y(in) + ioffs(2)
+          ztmp = z(in) + ioffs(3)
+          itype = atype(in)
+          fxtmp = d_zero
+          fytmp = d_zero
+          fztmp = d_zero
+
           do j=1,jcell%nlist
+             jn = jcell%list(j)
+             ! handle the case of (newton .eqv. .true.) then icell == jcell
+             if (half_pair) then
+                if (in > jn) then
+                   if (mod(in+jn,2) == 0) cycle
+                else if (in < jn) then
+                   if (mod(in+jn,2) == 1) cycle
+                else
+                   ! (in == jn)
+                   cycle
+                end if
+             end if
+
+             delx = xtmp - x(jn) - joffs(1)
+             dely = ytmp - y(jn) - joffs(2)
+             delz = ztmp - z(jn) - joffs(3)
+             rsq = delx*delx + dely*dely + delz*delz
+             jtype = atype(jn)
+
+             if (rsq < cutsq%m(itype,jtype)) then
+                r2inv = d_one/rsq
+                r6inv = r2inv*r2inv*r2inv
+                fpair = r6inv * (lj1%m(itype,jtype)*r6inv &
+                     - lj2%m(itype,jtype)) * r2inv
+
+                fxtmp = fxtmp + delx*fpair
+                fytmp = fytmp + dely*fpair
+                fztmp = fztmp + delz*fpair
+
+                if (newton) then
+                   fx(jn) = fx(jn) - delx*fpair
+                   fy(jn) = fy(jn) - dely*fpair
+                   fz(jn) = fz(jn) - delz*fpair
+                   evdw = r6inv*(lj3%m(itype,jtype)*r6inv &
+                        - lj4%m(itype,jtype)) - offset%m(itype,jtype)
+                else
+                   evdw = d_half * ( r6inv*(lj3%m(itype,jtype)*r6inv &
+                        - lj4%m(itype,jtype)) - offset%m(itype,jtype) )
+                end if
+                epair = epair + evdw
+             end if
           end do
        end do
     end do
+    print*,'epair: ', epair
     
   end subroutine pair_lj_cut_compute
 
