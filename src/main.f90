@@ -56,6 +56,8 @@ program ictp_md
   use input,           only : input_read
   use atoms,           only : force_clear
   use neighbor,        only : neighbor_setup, neighbor_build
+  use pair_io,         only : pair_compute
+  use sysinfo_io,      only : get_newton
   use restart,         only : restart_write
   implicit none
 
@@ -68,6 +70,7 @@ program ictp_md
   ! initialize MD
   call neighbor_setup
   call force_clear
+  call pair_compute(get_newton())
 
   ! write out a restart file
   call restart_write(-1)

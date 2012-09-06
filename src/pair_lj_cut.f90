@@ -18,6 +18,7 @@ module pair_lj_cut
   type(dp_mat)  :: lj4    !< Preprocessed LJ parameter
 
   public :: pair_lj_cut_init, pair_lj_cut_read, pair_lj_cut_write
+  public :: pair_lj_cut_compute
 
 contains
 
@@ -192,6 +193,13 @@ contains
     end do
     if (mp_ioproc()) call memory_print
   end subroutine pair_lj_cut_read
+
+  !> compute forces
+  subroutine pair_lj_cut_compute(newton)
+    use atoms
+    logical, intent(in) :: newton
+
+  end subroutine pair_lj_cut_compute
 
   subroutine pair_lj_cut_write(channel,ntypes)
     use io

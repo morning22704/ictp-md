@@ -22,7 +22,7 @@ module pair_io
   namelist /pair/ cutoff_pair, cutoff_coul, shift_pot, do_coulomb, &
        pair_style, coul_style
 
-  public :: pair_init, pair_read, pair_write
+  public :: pair_init, pair_read, pair_write, pair_compute
   public :: get_max_cutoff
 
 contains
@@ -47,7 +47,8 @@ contains
     write(stdout,*) separator
   end subroutine pair_init
 
-  !> Read input
+  !> Read input for pair module from the &pair namelist and
+  !! the &pair_coeff section
   subroutine pair_read
     use io
     use control_io, only : is_restart
@@ -122,6 +123,16 @@ contains
     end if
 
   end subroutine pair_read
+
+  subroutine pair_compute(newton)
+    logical, intent(in) :: newton
+
+    if (trim(pair_style) == 'lj/cut') then
+       call pair_lj_cut_compute(newton)
+    else
+       call mp_error('Unsupported pair style',1)
+    end if
+  end subroutine pair_compute
 
   !> Write info for pair module
   subroutine pair_write
