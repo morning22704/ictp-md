@@ -128,26 +128,26 @@ contains
 
        if (trim(topfile) == 'internal') then
           if (is_restart()) then
-             write(stdout,*) 'Using internal topology from restart'
+             write(stdout,*) 'Reading internal topology from restart'
              topchannel = resin
           else
-             write(stdout,*) 'Using internal topology from input'
+             write(stdout,*) 'Reading internal topology from input'
              topchannel = stdin
           end if
        else
           open(unit=topin, file=trim(topfile), form='formatted', &
                status='old', iostat=ierr)
           if (ierr /= 0) call mp_error('Failure opening topology file',ierr)
-          write(stdout,*) 'Using topology from file  : ', trim(topfile)
+          write(stdout,*) 'Reading topology file     : ', trim(topfile)
           topchannel = topin
        end if
 
        if (trim(posfile) == 'internal') then
           if (is_restart()) then
-             write(stdout,*) 'Using internal geometry from restart'
+             write(stdout,*) 'Reading internal geometry from restart'
              poschannel = resin
           else
-             write(stdout,*) 'Using internal geometry from input'
+             write(stdout,*) 'Reading internal geometry from input'
              poschannel = stdin
           end if
        else if ((trim(inpformat) == 'xyz/xyz') .and. &
@@ -157,16 +157,16 @@ contains
           open(unit=geoin, file=trim(posfile), form='formatted', &
                status='old', iostat=ierr)
           if (ierr /= 0) call mp_error('Failure opening geometry file',ierr)
-          write(stdout,*) 'Using geometry from file  : ', trim(posfile)
+          write(stdout,*) 'Reading geometry file     : ', trim(topfile)
           poschannel = geoin
        end if
 
        if (trim(velfile) == 'internal') then
           if (is_restart()) then
-             write(stdout,*) 'Using internal velocities from restart'
+             write(stdout,*) 'Reading internal velocities from restart'
              velchannel = resin
           else
-             write(stdout,*) 'Using internal velocities from input'
+             write(stdout,*) 'Reading internal velocities from input'
              velchannel = stdin
           end if
        else
@@ -175,7 +175,7 @@ contains
                   status='old', iostat=ierr)
              if (ierr /= 0) &
                   call mp_error('Failure opening velocities file',ierr)
-             write(stdout,*) 'Using velocities from file  : ', trim(velfile)
+             write(stdout,*) 'Reading velocity file     : ', trim(velfile)
              velchannel = velin
           end if
        end if
