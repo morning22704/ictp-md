@@ -51,7 +51,7 @@ contains
          get_neigh_check, get_newton
     real(kind=dp), intent(in) :: max_cutoff
     real(kind=dp) :: cutoff, ratio, hmat(6), offset(3)
-    integer :: nlevel, nlower, nghosts, i, j, k, ip, jp, kp, n
+    integer :: nlevel, nlower, nghosts, i, j, k, ip, jp, kp, n , idx
 
     call get_hmat(hmat)
     nlevel = get_neigh_nlevel()
@@ -90,11 +90,11 @@ contains
     if (newton) then
        nlower   = 1
        nghosts  = (nx+nlevel+1)*(ny+nlevel+1)*(nz+nlevel+1) - ncells
-       nstencil = (nlevel+1)**3
+       nstencil = (nlevel+2)**3
     else
        nlower   = -nlevel
        nghosts  = (nx+2*nlevel+2)*(ny+2*nlevel+2)*(nz+2*nlevel+2) - ncells
-       nstencil = (2*nlevel+1)**3
+       nstencil = (2*(nlevel+1)+1)**3
     end if
     allocate(list(nlower:nx+nlevel+1,nlower:ny+nlevel+1,nlower:nz+nlevel+1))
     npairs = ncells * nstencil
@@ -127,6 +127,7 @@ contains
     end do
 
     offset(:) = d_zero
+    idx = 1
     do i=nlower,nx+nlevel+1
        if (i < 1) then
           ip = i + nx
@@ -160,6 +161,8 @@ contains
                 kp = k
                 offset(3) = d_zero
              end if
+             list(i,j,k)%idx = idx
+             idx = idx + 1
              if (i<1 .or. i>nx .or. j<1 .or. j>ny .or. k<1 .or. k>nz) then
                 list(i,j,k)%is_ghost = .true.
                 list(i,j,k)%nlist = list(ip,jp,kp)%nlist
