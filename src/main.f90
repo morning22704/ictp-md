@@ -56,7 +56,7 @@ program ictp_md
   use input,           only : input_read
   use atoms,           only : force_clear
   use neighbor,        only : neighbor_setup, neighbor_build
-  use pair_io,         only : pair_compute
+  use pair_io,         only : pair_compute, get_max_cutoff
   use restart,         only : restart_write
   implicit none
 
@@ -67,9 +67,10 @@ program ictp_md
   call input_read
 
   ! initialize MD
-  call neighbor_setup
+  call neighbor_setup(get_max_cutoff())
   call force_clear
   call pair_compute
+
 
   ! write out a restart file
   call restart_write(-1)
