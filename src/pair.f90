@@ -124,11 +124,11 @@ contains
 
   end subroutine pair_read
 
-  subroutine pair_compute(newton)
-    logical, intent(in) :: newton
+  subroutine pair_compute
+    use sysinfo_io, only : get_newton
 
     if (trim(pair_style) == 'lj/cut') then
-       call pair_lj_cut_compute(newton)
+       call pair_lj_cut_compute(get_newton())
     else
        call mp_error('Unsupported pair style',1)
     end if
