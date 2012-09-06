@@ -20,7 +20,7 @@ module atoms
 
   public :: atoms_init, atoms_setup, atoms_replicate, types_init
   public :: set_type, set_idx, set_mass, set_charge, set_pos, set_vel
-  public :: get_ntypes, get_natoms, get_x_r, get_x_s
+  public :: get_ntypes, get_natoms, get_x_r, get_x_s, get_for
   public :: is_chg, is_pos, is_vel
   public :: update_image, force_clear, xyz_write
   public :: ndeftypes
@@ -272,6 +272,14 @@ contains
     z => x_s%z
   end subroutine get_x_s
 
+  subroutine get_for(x,y,z)
+    real(kind=dp), pointer :: x(:), y(:), z(:)
+
+    x => for%x
+    y => for%y
+    z => for%z
+  end subroutine get_for
+
   function is_chg()
     logical :: is_chg
 
@@ -300,6 +308,7 @@ contains
     if (what == 'pos') then
        write(stdout,*) 'Writing out positions in xyz format'
        vec = x_r
+       call lambda2x
     else if (what == 'vel') then
        write(stdout,*) 'Writing out velocities in xyz format '
        vec = vel
