@@ -7,12 +7,13 @@ module neighbor
   implicit none
   private
   real(kind=dp) :: dx, dy, dz
-  integer :: next_step, nx, ny, nz, ncells, nlist, maxlist
-  logical :: first_call, do_check
+  integer :: next_step, nx, ny, nz, ncells, npairs, nstencil, nlist, maxlist
+  logical :: first_call, do_check, newton
   type(neigh_cell), pointer :: list(:,:,:)
   type(xyz_vec) :: old_pos
+  type(int_vec) :: cell_pairs
   public :: neighbor_init, neighbor_setup, neighbor_build
-  public :: get_ncells, get_cell, cell2index
+  public :: get_ncells, get_npairs, get_cell_pairs, get_cell
 
 contains
 
@@ -26,38 +27,42 @@ contains
     ny = -1
     nz = -1
     ncells = -1
+    npairs = -1
+    nstencil = -1
     nlist = 0
     maxlist = 0
     next_step = -1
     first_call = .true.
     do_check = .false.
+    newton = .true.
     nullify(list)
     old_pos%size = -1
-    call adjust_mem(3*dp+9*sp+dp+(3*dp+sp))
+    call adjust_mem(3*dp+12*sp+dp+(3*dp+sp)+(dp+sp))
   end subroutine neighbor_init
 
   !> Set up, allocate, and prepare  the basic cell list data
   !! When called the first time, print out diagnostic info.
-  subroutine neighbor_setup
+  subroutine neighbor_setup(max_cutoff)
     use io
     use atoms,      only : get_natoms
     use memory,     only : adjust_mem, memory_print, alloc_vec
     use cell,       only : get_hmat
-    use pair_io,    only : get_max_cutoff
     use sysinfo_io, only : get_neigh_nlevel, get_neigh_ratio, get_neigh_skin, &
          get_neigh_check, get_newton
-    integer :: nlevel, nlower, nghosts, i, j, k, ip, jp, kp
+    real(kind=dp), intent(in) :: max_cutoff
     real(kind=dp) :: cutoff, ratio, hmat(6), offset(3)
+    integer :: nlevel, nlower, nghosts, i, j, k, ip, jp, kp, n
 
     call get_hmat(hmat)
     nlevel = get_neigh_nlevel()
     ratio  = get_neigh_ratio()
-    cutoff = get_max_cutoff() + get_neigh_skin()
+    cutoff = max_cutoff + get_neigh_skin()
     do_check = get_neigh_check()
+    newton = get_newton()
 
     ! deallocate previously allocated storage
     if (.not. first_call) then
-       if (get_newton()) then
+       if (newton) then
           nghosts = (nx+nlevel+1)*(ny+nlevel+1)*(nz+nlevel+1) - ncells
        else
           nghosts = (nx+2*nlevel+2)*(ny+2*nlevel+2)*(nz+2*nlevel+2) - ncells
@@ -82,16 +87,21 @@ contains
     dz = d_one/dble(nz)
     nlist = int(dble(get_natoms())/dble(ncells)*ratio)
 
-    if (get_newton()) then
-       nlower = 1
-       nghosts = (nx+nlevel+1)*(ny+nlevel+1)*(nz+nlevel+1) - ncells
+    if (newton) then
+       nlower   = 1
+       nghosts  = (nx+nlevel+1)*(ny+nlevel+1)*(nz+nlevel+1) - ncells
+       nstencil = (nlevel+1)**3
     else
-       nlower = -nlevel
-       nghosts = (nx+2*nlevel+2)*(ny+2*nlevel+2)*(nz+2*nlevel+2) - ncells
+       nlower   = -nlevel
+       nghosts  = (nx+2*nlevel+2)*(ny+2*nlevel+2)*(nz+2*nlevel+2) - ncells
+       nstencil = (2*nlevel+1)**3
     end if
     allocate(list(nlower:nx+nlevel+1,nlower:ny+nlevel+1,nlower:nz+nlevel+1))
+    npairs = ncells * nstencil
+    call alloc_vec(cell_pairs,6*npairs)
 
     if (do_check) call alloc_vec(old_pos,get_natoms())
+    n = 0
     do i=1,nx
        do j=1,ny
           do k=1,nz
@@ -99,6 +109,19 @@ contains
              list(i,j,k)%offset(:) = d_zero
              list(i,j,k)%nlist = 0
              list(i,j,k)%is_ghost = .false.
+             do ip=i+nlower-1,i+nlevel+1
+                do jp=j+nlower-1,j+nlevel+1
+                   do kp=k+nlower-1,k+nlevel+1
+                      cell_pairs%v(6*n+1) = i
+                      cell_pairs%v(6*n+2) = j
+                      cell_pairs%v(6*n+3) = k
+                      cell_pairs%v(6*n+4) = ip
+                      cell_pairs%v(6*n+5) = jp
+                      cell_pairs%v(6*n+6) = kp
+                      n = n + 1
+                   end do
+                end do
+             end do
           end do
        end do
     end do
@@ -159,6 +182,8 @@ contains
        write(stdout,fmt='(A,G11.6,A,G11.6,A,G11.6)') ' Grid spacing  : ', &
             dx*hmat(1), ' x ', dy*hmat(2), ' x ', dz*hmat(3)
        write(stdout,*) 'Number of ghost cells           : ', nghosts
+       write(stdout,*) 'Number of stencil cells         : ', nstencil
+       write(stdout,*) 'Number of cell pairs            : ', npairs
        write(stdout,*) 'Maximum allowed atoms per cell  : ', nlist
        write(stdout,*) 'Maximum actual atoms per cell   : ', maxlist
        write(stdout,*) 'Average number of atoms per cell: ', &
@@ -273,6 +298,20 @@ contains
     get_ncells = ncells
   end function get_ncells
 
+  !> Return the number of cell pairs
+  function get_npairs()
+    integer :: get_npairs
+
+    get_npairs = npairs
+  end function get_npairs
+
+  !> Give access to the list of cell pairs
+  subroutine get_cell_pairs(ptr)
+    integer, pointer :: ptr(:)
+
+    ptr => cell_pairs%v
+  end subroutine get_cell_pairs
+
   !> Return cell info based on i,j,k indices
   !! @param i x index of the cell
   !! @param j y index of the cell
@@ -283,19 +322,5 @@ contains
 
     get_cell = list(i,j,k)
   end function get_cell
-
-  !> Return non-ghost cell info based on an index between 1 and ncells
-  !! @param idx Index of the cell
-  !! @param i x index of the cell
-  !! @param j y index of the cell
-  !! @param k z index of the cell 
-  subroutine cell2index(idx,i,j,k)
-    integer, intent(in)  :: idx
-    integer, intent(out) :: i,j,k
-
-    i = idx/(ny*nz)+1
-    j = mod(idx,ny*nz)/nz+1
-    k = mod(idx,nz)+1
-  end subroutine cell2index
 
 end module neighbor
