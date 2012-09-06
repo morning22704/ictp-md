@@ -20,9 +20,9 @@ module atoms
 
   public :: atoms_init, atoms_setup, atoms_replicate, types_init
   public :: set_type, set_idx, set_mass, set_charge, set_pos, set_vel
-  public :: get_ntypes, get_natoms, get_x_r, get_x_s, get_for
+  public :: get_ntypes, get_natoms, get_x_r, get_x_s, get_for, get_typ
   public :: is_chg, is_pos, is_vel
-  public :: update_image, force_clear, xyz_write
+  public :: update_image, force_clear, xyz_write, coord_s2r
   public :: ndeftypes
 
 contains
@@ -280,6 +280,12 @@ contains
     z => for%z
   end subroutine get_for
 
+  subroutine get_typ(v)
+    integer, pointer :: v(:)
+
+    v => typ%v
+  end subroutine get_typ
+
   function is_chg()
     logical :: is_chg
 
@@ -374,6 +380,22 @@ contains
     end do
     valid_x_r = .true.
   end subroutine lambda2x
+
+  !> convert single triclinic 0-1 lamda coord to box coords
+  !! x = H lamda + x0;
+  subroutine coord_s2r(ivec,ovec)
+    use cell, only: get_origin, get_hmat
+    real(kind=dp), intent(in)  :: ivec(3)
+    real(kind=dp), intent(out) :: ovec(3)
+    real(kind=dp) :: origin(3), hmat(6)
+
+    call get_origin(origin)
+    call get_hmat(hmat)
+
+    ovec(1) = hmat(1)*ivec(1) + hmat(6)*ivec(2) + hmat(5)*ivec(3) + origin(1)
+    ovec(2) = hmat(2)*ivec(2) + hmat(4)*ivec(3) + origin(2)
+    ovec(3) = hmat(3)*ivec(3) + origin(3)
+  end subroutine coord_s2r
 
   subroutine remap
     integer :: i
