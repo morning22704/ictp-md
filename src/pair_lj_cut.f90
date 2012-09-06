@@ -197,8 +197,45 @@ contains
   !> compute forces
   subroutine pair_lj_cut_compute(newton)
     use atoms
+    use neighbor
+    use sysinfo_io
     logical, intent(in) :: newton
+    real(kind=dp), pointer :: x(:),y(:),z(:),fx(:),fy(:),fz(:)
+    type(neigh_cell) :: icell, jcell
+    integer, pointer :: cell_pairs(:)
+    logical :: half_pair
+    integer :: n, i, j, k, in, jn, kn, npairs
 
+    npairs=get_npairs()
+    call get_cell_pairs(cell_pairs)
+    call get_x_s(x,y,z)
+    call get_for(fx,fy,fz)
+
+    do n=1,6*npairs-1,6
+
+       ! grab first cell
+       i = cell_pairs(n)
+       j = cell_pairs(n+1)
+       k = cell_pairs(n+2)
+       icell = get_cell(i,j,k)
+
+       ! grab second cell
+       in = cell_pairs(n+3)
+       jn = cell_pairs(n+4)
+       kn = cell_pairs(n+5)
+       jcell = get_cell(in,jn,kn)
+
+       ! determine if we need to skip half of the pairs
+       half_pair = .false.
+       if ((i==in).and.(i==in).and.(i==in).and.newton) half_pair=.true.
+
+       ! loop over pairs of atoms between the two cells
+       do i=1,icell%nlist
+          do j=1,jcell%nlist
+          end do
+       end do
+    end do
+    
   end subroutine pair_lj_cut_compute
 
   subroutine pair_lj_cut_write(channel,ntypes)
