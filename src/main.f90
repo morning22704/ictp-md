@@ -65,6 +65,8 @@ program ictp_md
 
   ! read system settings from input
   call input_read
+  ! write a restart to validate input against
+  call restart_write(-1)
 
   ! initialize MD
   call neighbor_setup(get_max_cutoff())
@@ -72,8 +74,6 @@ program ictp_md
   call pair_compute
 
 
-  ! write out a restart file
-  call restart_write(-1)
 
   ! finish off
   call mp_finish
