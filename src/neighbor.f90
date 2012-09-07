@@ -63,9 +63,9 @@ contains
     ! deallocate previously allocated storage
     if (.not. first_call) then
        if (newton) then
-          nghosts = (nx+nlevel+1)*(ny+nlevel+1)*(nz+nlevel+1) - ncells
+          nghosts = (nx+nlevel)*(ny+nlevel)*(nz+nlevel) - ncells
        else
-          nghosts = (nx+2*nlevel+2)*(ny+2*nlevel+2)*(nz+2*nlevel+2) - ncells
+          nghosts = (nx+2*nlevel)*(ny+2*nlevel)*(nz+2*nlevel) - ncells
        end if
        do i=1,nx
           do j=1,ny
@@ -89,14 +89,14 @@ contains
 
     if (newton) then
        nlower   = 1
-       nghosts  = (nx+nlevel+1)*(ny+nlevel+1)*(nz+nlevel+1) - ncells
-       nstencil = (nlevel+2)**3
+       nghosts  = (nx+nlevel)*(ny+nlevel)*(nz+nlevel) - ncells
+       nstencil = (nlevel+1)**3
     else
-       nlower   = -nlevel
-       nghosts  = (nx+2*nlevel+2)*(ny+2*nlevel+2)*(nz+2*nlevel+2) - ncells
-       nstencil = (2*(nlevel+1)+1)**3
+       nlower   = -nlevel+1
+       nghosts  = (nx+2*nlevel)*(ny+2*nlevel)*(nz+2*nlevel) - ncells
+       nstencil = (2*(nlevel)+1)**3
     end if
-    allocate(list(nlower:nx+nlevel+1,nlower:ny+nlevel+1,nlower:nz+nlevel+1))
+    allocate(list(nlower:nx+nlevel,nlower:ny+nlevel,nlower:nz+nlevel))
     npairs = ncells * nstencil
     call alloc_vec(cell_pairs,6*npairs)
 
@@ -109,9 +109,9 @@ contains
              list(i,j,k)%offset(:) = d_zero
              list(i,j,k)%nlist = 0
              list(i,j,k)%is_ghost = .false.
-             do ip=i+nlower-1,i+nlevel+1
-                do jp=j+nlower-1,j+nlevel+1
-                   do kp=k+nlower-1,k+nlevel+1
+             do ip=i+nlower-1,i+nlevel
+                do jp=j+nlower-1,j+nlevel
+                   do kp=k+nlower-1,k+nlevel
                       cell_pairs%v(6*n+1) = i
                       cell_pairs%v(6*n+2) = j
                       cell_pairs%v(6*n+3) = k
@@ -128,7 +128,7 @@ contains
 
     offset(:) = d_zero
     idx = 1
-    do i=nlower,nx+nlevel+1
+    do i=nlower,nx+nlevel
        if (i < 1) then
           ip = i + nx
           offset(1) = -d_one
@@ -139,7 +139,7 @@ contains
           ip = i
           offset(1) = d_zero
        end if
-       do j=nlower,ny+nlevel+1
+       do j=nlower,ny+nlevel
           if (j < 1) then
              jp = j + ny
              offset(2) = -d_one
@@ -150,7 +150,7 @@ contains
              jp = j
              offset(2) = d_zero
           end if
-          do k=nlower,nz+nlevel+1
+          do k=nlower,nz+nlevel
              if (k < 1) then
                 kp = k + nz
                 offset(3) = -d_one
@@ -217,33 +217,37 @@ contains
        ix = int(x(i)/dx + d_one)
        iy = int(y(i)/dy + d_one)
        iz = int(z(i)/dz + d_one)
+
        if (ix < 1) then
-          n = (ix - nx) / nx
+          n = (ix-nx) / nx
           ix = ix - n*nx
           call update_image(i,n,'x')
        else if (ix > nx) then
-          n = ix / nx
+          n = (ix-1) / nx
           ix = ix - n*nx
           call update_image(i,n,'x')
        end if
+
        if (iy < 1) then
-          n = (iy - ny) / ny
+          n = (iy-ny) / ny
           iy = iy - n*ny
           call update_image(i,n,'y')
        else if (iy > ny) then
-          n = iy / ny
+          n = (iy-1) / ny
           iy = iy - n*ny
           call update_image(i,n,'y')
        end if
+
        if (iz < 1) then
-          n = (iz - nz) / nz
+          n = (iz-nz) / nz
           iz = iz - n*nz
           call update_image(i,n,'z')
        else if (iz > nz) then
-          n = iz / nz
+          n = (iz-1) / nz
           iz = iz - n*nz
           call update_image(i,n,'z')
        end if
+
        n = list(ix,iy,iz)%nlist + 1
        if (n > maxlist) maxlist = n
        if (n > nlist) &
