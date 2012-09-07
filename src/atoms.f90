@@ -309,6 +309,7 @@ contains
     integer, intent(in)          :: channel
     character(len=3), intent(in) :: what
     type (xyz_vec) :: vec
+    real(kind=dp), pointer :: x(:), y(:), z(:)
     integer :: i
 
     if (what == 'pos') then
@@ -326,10 +327,13 @@ contains
        return
     end if
 
+    x => vec%x
+    y => vec%y
+    z => vec%z
     write(channel,*) natoms
     write(channel,*) 'Written by ICTP-MD'
     do i=1,natoms
-       write(channel,*) lbl%v(typ%v(i)), vec%x(i), vec%y(i), vec%z(i)
+       write(channel,fmt='(A17,3G21.13)') lbl%v(typ%v(i)), x(i), y(i), z(i)
     end do
   end subroutine xyz_write
 
