@@ -150,6 +150,8 @@ contains
              write(stdout,*) 'Reading internal geometry from input'
              poschannel = stdin
           end if
+       else if (trim(inpformat) == 'xyz') then
+             write(stdout,*) 'Reading geometry together with topology'
        else if ((trim(inpformat) == 'xyz/xyz') .and. &
             (trim(posfile) == trim(topfile))) then
           call mp_error('Topology and geometry must be different files',0)
