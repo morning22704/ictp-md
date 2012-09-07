@@ -44,14 +44,14 @@ contains
   !! When called the first time, print out diagnostic info.
   subroutine neighbor_setup(max_cutoff)
     use io
-    use atoms,      only : get_natoms
+    use atoms,      only : get_natoms, coord_s2r
     use memory,     only : adjust_mem, memory_print, alloc_vec
     use cell,       only : get_hmat
     use sysinfo_io, only : get_neigh_nlevel, get_neigh_ratio, get_neigh_skin, &
          get_neigh_check, get_newton
     real(kind=dp), intent(in) :: max_cutoff
-    real(kind=dp) :: cutoff, ratio, hmat(6), offset(3)
-    integer :: nlevel, nlower, nghosts, i, j, k, ip, jp, kp, n , idx
+    real(kind=dp) :: cutoff, ratio, hmat(6), offset(3), delta(3)
+    integer :: nlevel, nlower, nghosts, i, j, k, ip, jp, kp, n, idx, npruned
 
     call get_hmat(hmat)
     nlevel = get_neigh_nlevel()
@@ -86,6 +86,7 @@ contains
     dy = d_one/dble(ny)
     dz = d_one/dble(nz)
     nlist = int(dble(get_natoms())/dble(ncells)*ratio)
+    npruned = 0
 
     if (newton) then
        nlower   = 1
@@ -102,22 +103,50 @@ contains
 
     if (do_check) call alloc_vec(old_pos,get_natoms())
     n = 0
-    do i=1,nx
+    do k=1,nz
        do j=1,ny
-          do k=1,nz
-             allocate(list(i,j,k)%list(nlist))
+          do i=1,nx
+             allocate(list(i,j,k)%list(0:nlist))
              list(i,j,k)%offset(:) = d_zero
-             list(i,j,k)%nlist = 0
              list(i,j,k)%is_ghost = .false.
-             do ip=i+nlower-1,i+nlevel
+             do kp=k+nlower-1,k+nlevel
                 do jp=j+nlower-1,j+nlevel
-                   do kp=k+nlower-1,k+nlevel
-                      cell_pairs%v(6*n+1) = i
-                      cell_pairs%v(6*n+2) = j
-                      cell_pairs%v(6*n+3) = k
-                      cell_pairs%v(6*n+4) = ip
-                      cell_pairs%v(6*n+5) = jp
-                      cell_pairs%v(6*n+6) = kp
+                   do ip=i+nlower-1,i+nlevel
+                      ! check if this cell pair can be skipped completely
+                      if (i < ip) then
+                         delta(1) = dx * (ip - i - 1)
+                      else if (i > ip) then
+                         delta(1) = dx * (i - ip - 1)
+                      else
+                         delta(1) = d_zero
+                      end if
+                      if (j < jp) then
+                         delta(2) = dy * (jp - j - 1)
+                      else if (j > jp) then
+                         delta(2) = dy * (j - jp - 1)
+                      else
+                         delta(2) = d_zero
+                      end if
+                      if (k < kp) then
+                         delta(3) = dz * (kp - k - 1)
+                      else if (k > kp) then
+                         delta(3) = dz * (k - kp - 1)
+                      else
+                         delta(3) = d_zero
+                      end if
+                      call coord_s2r(delta,offset)
+                      ! indicate a pruned cell pair
+                      if (sqrt(sum(offset*offset)) > max_cutoff) then
+                         npruned = npruned + 1
+                         cell_pairs%v(6*n+1) = -1
+                      else
+                         cell_pairs%v(6*n+1) = i
+                         cell_pairs%v(6*n+2) = j
+                         cell_pairs%v(6*n+3) = k
+                         cell_pairs%v(6*n+4) = ip
+                         cell_pairs%v(6*n+5) = jp
+                         cell_pairs%v(6*n+6) = kp
+                      end if
                       n = n + 1
                    end do
                 end do
@@ -126,54 +155,57 @@ contains
        end do
     end do
 
+    ! map ghost cells to non-ghosts
     offset(:) = d_zero
     idx = 1
-    do i=nlower,nx+nlevel
-       if (i < 1) then
-          ip = i + nx
-          offset(1) = -d_one
-       elseif (i > nx) then
-          ip = i - nx
-          offset(1) = d_one
-       else 
-          ip = i
-          offset(1) = d_zero
+    do kp=nlower,nz+nlevel
+       if (kp < 1) then
+          k = kp + nz
+          offset(3) = -d_one
+       elseif (kp > nz) then
+          k = kp - nz
+          offset(3) = d_one
+       else
+          k = kp
+          offset(3) = d_zero
        end if
-       do j=nlower,ny+nlevel
-          if (j < 1) then
-             jp = j + ny
+
+       do jp=nlower,ny+nlevel
+          if (jp < 1) then
+             j = jp + ny
              offset(2) = -d_one
-          elseif (j > ny) then
-             jp = j - ny
+          elseif (jp > ny) then
+             j = jp - ny
              offset(2) = d_one
           else 
-             jp = j
+             j = jp
              offset(2) = d_zero
           end if
-          do k=nlower,nz+nlevel
-             if (k < 1) then
-                kp = k + nz
-                offset(3) = -d_one
-             elseif (k > nz) then
-                kp = k - nz
-                offset(3) = d_one
-             else
-                kp = k
-                offset(3) = d_zero
+
+          do ip=nlower,nx+nlevel
+             if (ip < 1) then
+                i = ip + nx
+                offset(1) = -d_one
+             elseif (ip > nx) then
+                i = ip - nx
+                offset(1) = d_one
+             else 
+                i = ip
+                offset(1) = d_zero
              end if
-             list(i,j,k)%idx = idx
+
+             list(ip,jp,kp)%idx = idx
              idx = idx + 1
-             if (i<1 .or. i>nx .or. j<1 .or. j>ny .or. k<1 .or. k>nz) then
-                list(i,j,k)%is_ghost = .true.
-                list(i,j,k)%nlist = list(ip,jp,kp)%nlist
-                list(i,j,k)%list => list(ip,jp,kp)%list
-                list(i,j,k)%offset(:) = offset(:)
+             if ((ip < 1) .or. (ip > nx) .or. (jp<1) .or. (jp > ny) &
+                  .or. (kp < 1) .or. (kp > nz)) then
+                list(ip,jp,kp)%is_ghost = .true.
+                list(ip,jp,kp)%offset(:) = offset(:)
+                list(ip,jp,kp)%list => list(i,j,k)%list
              endif
           end do
        end do
     end do
     call adjust_mem((3*dp+dp+2*sp)*(ncells+nghosts) + nlist*sp*ncells)
-    call neighbor_build
 
     ! print status only by io task and only on first call
     if (first_call .and. mp_ioproc()) then
@@ -186,32 +218,43 @@ contains
             dx*hmat(1), ' x ', dy*hmat(2), ' x ', dz*hmat(3)
        write(stdout,*) 'Number of ghost cells           : ', nghosts
        write(stdout,*) 'Number of stencil cells         : ', nstencil
-       write(stdout,*) 'Number of cell pairs            : ', npairs
-       write(stdout,*) 'Maximum allowed atoms per cell  : ', nlist
-       write(stdout,*) 'Maximum actual atoms per cell   : ', maxlist
+       write(stdout,*) 'Number of total cell pairs      : ', npairs
+       write(stdout,*) 'Number of pruned cell pairs     : ', npruned
        write(stdout,*) 'Average number of atoms per cell: ', &
             dble(get_natoms())/dble(ncells)
+       write(stdout,*) 'Maximum allowed atoms per cell  : ', nlist
+    end if
+
+    call neighbor_build
+
+    ! print status only by io task and only on first call
+    if (first_call .and. mp_ioproc()) then
+       write(stdout,*) 'Maximum actual atoms per cell   : ', maxlist
        call memory_print
     end if
     first_call = .false.
   end subroutine neighbor_setup
 
-  !> Sort all atoms into their respective cells, update their
-  !! image flags (and implicitly wrap the coordinates for periodic
-  !! boundary conditions) and update the corresponding ghost cell data 
+  !> Sort all atoms into their respective cells, update their image flags
+  !! (and implicitly wrap the coordinates for periodic boundary conditions)
   subroutine neighbor_build
     use io
     use atoms,      only : get_natoms, get_x_s, update_image
-    use sysinfo_io, only : get_neigh_nlevel, get_newton
     real(kind=dp), pointer :: x(:), y(:), z(:)
-    integer :: nlevel, natoms, nlower, n, i, j, k, ix, iy, iz, ip, jp, kp
+    integer :: natoms, n, i, ix, iy, iz
 
     natoms = get_natoms()
-    nlevel = get_neigh_nlevel()
     call get_x_s(x,y,z)
 
     ! clear list entries
-    list(:,:,:)%nlist = 0
+    do iz=1,nz
+       do iy=1,ny
+          do ix=1,nx
+             ! FIXME: only zeroeing out of element 0 needed
+             list(ix,iy,iz)%list(:) = 0
+          end do
+       end do
+    end do
 
     do i=1,natoms
        ix = int(x(i)/dx + d_one)
@@ -248,52 +291,12 @@ contains
           call update_image(i,n,'z')
        end if
 
-       n = list(ix,iy,iz)%nlist + 1
-       if (n > maxlist) maxlist = n
+       n = list(ix,iy,iz)%list(0) + 1
        if (n > nlist) &
             call mp_error('Cell list overflow. Increase neigh_ratio.',n)
-       list(ix,iy,iz)%nlist = n
+       if (n > maxlist) maxlist = n
+       list(ix,iy,iz)%list(0) = n
        list(ix,iy,iz)%list(n) = i
-    end do
-
-    ! update nlist data in ghost cells
-    if (get_newton()) then
-       nlower = 1
-    else
-       nlower = -nlevel
-    end if
-
-    do i=nlower,nx+nlevel+1
-       if (i < 1) then
-          ip = i + nx
-       elseif (i > nx) then
-          ip = i - nx
-       else 
-          ip = i
-       end if
-
-       do j=nlower,ny+nlevel+1
-          if (j < 1) then
-             jp = j + ny
-          elseif (j > ny) then
-             jp = j - ny
-          else 
-             jp = j
-          end if
-
-          do k=nlower,nz+nlevel+1
-             if (k < 1) then
-                kp = k + nz
-             elseif (k > nz) then
-                kp = k - nz
-             else
-                kp = k
-             end if
-             if (i<1 .or. i>nx .or. j<1 .or. j>ny .or. k<1 .or. k>nz) then
-                list(i,j,k)%nlist = list(ip,jp,kp)%nlist
-             endif
-          end do
-       end do
     end do
 
   end subroutine neighbor_build
