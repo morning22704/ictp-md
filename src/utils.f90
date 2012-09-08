@@ -4,18 +4,22 @@ module utils
   use constants
   implicit none
   private
-  character(len=lilen) :: line
+  character(len=lilen) :: line   !< buffer for text lines
 
   public utils_init, find_section, is_section_end, distribute_loop
 
 contains
 
+  !> Initialize the utility module
   subroutine utils_init
     use memory, only : adjust_mem
 
     call adjust_mem(lilen+sp)
   end subroutine utils_init
 
+  !> Find the end of a namelist like section
+  !!
+  !! @params string Line of text to check for the marker
   function is_section_end(string)
     logical is_section_end
     character(len=*), intent(in) :: string
@@ -27,6 +31,10 @@ contains
     return
   end function is_section_end
 
+  !> Find the beginning of a namelist like section
+  !!
+  !! @params channel Input channel to read from
+  !! @params section Name of the section
   subroutine find_section(channel,section)
     use message_passing, only: mp_error
     integer, intent(in) :: channel
@@ -58,6 +66,15 @@ contains
     end do
   end subroutine find_section
 
+  !> Compute loop range for loops that are scattered across processors
+  !!
+  !! @params first The first index of the loop
+  !! @params last  The last index of the loop
+  !! @params skip  The number of indices to skip over per loop iteration
+  !! @params from  The computed first index of the scattered loop
+  !! @params to    The computed last index of the scattered loop
+  !! @params mode  A character indicating the mode (m: message passing,
+  !!               t: threading, b: message passing and threading)
   subroutine distribute_loop(first,last,skip,from,to,mode)
     use message_passing, only : mp_get_num, mp_get_rank, mp_error
     use threading, only : thr_get_num, thr_get_rank
@@ -66,11 +83,13 @@ contains
     integer, intent(out)  :: from, to
     integer :: mnum, tnum, midx, tidx, num, chunk, nloops
 
+    ! defaults for serial
     mnum = 1
     tnum = 1
     midx = 0
     tidx = 0
 
+    ! set up how to distribute the loop
     if (mode == 'b') then
        mnum = mp_get_num()
        tnum = thr_get_num()
