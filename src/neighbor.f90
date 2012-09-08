@@ -108,7 +108,6 @@ contains
           do i=1,nx
              allocate(list(i,j,k)%list(0:nlist))
              list(i,j,k)%offset(:) = d_zero
-             list(i,j,k)%is_ghost = .false.
              do kp=k+nlower-1,k+nlevel
                 do jp=j+nlower-1,j+nlevel
                    do ip=i+nlower-1,i+nlevel
@@ -136,7 +135,7 @@ contains
                       end if
                       call coord_s2r(delta,offset)
                       ! indicate a pruned cell pair
-                      if (sqrt(sum(offset*offset)) > max_cutoff) then
+                      if (sqrt(sum(offset*offset)) > cutoff) then
                          npruned = npruned + 1
                          cell_pairs%v(6*n+1) = -1
                       else
@@ -198,7 +197,6 @@ contains
              idx = idx + 1
              if ((ip < 1) .or. (ip > nx) .or. (jp<1) .or. (jp > ny) &
                   .or. (kp < 1) .or. (kp > nz)) then
-                list(ip,jp,kp)%is_ghost = .true.
                 list(ip,jp,kp)%offset(:) = offset(:)
                 list(ip,jp,kp)%list => list(i,j,k)%list
              endif
@@ -220,7 +218,7 @@ contains
        write(stdout,*) 'Number of stencil cells         : ', nstencil
        write(stdout,*) 'Number of total cell pairs      : ', npairs
        write(stdout,*) 'Number of pruned cell pairs     : ', npruned
-       write(stdout,*) 'Average number of atoms per cell: ', &
+       write(stdout,fmt='(A,F15.2)') ' Average number of atoms per cell: ', &
             dble(get_natoms())/dble(ncells)
        write(stdout,*) 'Maximum allowed atoms per cell  : ', nlist
     end if
@@ -261,34 +259,34 @@ contains
        iy = int(y(i)/dy + d_one)
        iz = int(z(i)/dz + d_one)
 
-       if (ix < 1) then
-          n = (ix-nx) / nx
-          ix = ix - n*nx
+       if ((ix < 1) .or. (ix > nx)) then
+          if (ix < 1) then
+             n = (ix-nx-1) / nx
+          else
+             n = ix / nx
+          end if
           call update_image(i,n,'x')
-       else if (ix > nx) then
-          n = (ix-1) / nx
-          ix = ix - n*nx
-          call update_image(i,n,'x')
+          ix = int(x(i)/dx + d_one)
        end if
 
-       if (iy < 1) then
-          n = (iy-ny) / ny
-          iy = iy - n*ny
+       if ((iy < 1) .or. (iy > ny)) then
+          if (iy < 1) then
+             n = (iy-ny-1) / ny
+          else
+             n = iy / ny
+          end if
           call update_image(i,n,'y')
-       else if (iy > ny) then
-          n = (iy-1) / ny
-          iy = iy - n*ny
-          call update_image(i,n,'y')
+          iy = int(y(i)/dy + d_one)
        end if
 
-       if (iz < 1) then
-          n = (iz-nz) / nz
-          iz = iz - n*nz
+       if ((iz < 1) .or. (iz > nz)) then
+          if (iz < 1) then
+             n = (iz-nz-1) / nz
+          else
+             n = iz / nz
+          end if
           call update_image(i,n,'z')
-       else if (iz > nz) then
-          n = (iz-1) / nz
-          iz = iz - n*nz
-          call update_image(i,n,'z')
+          iz = int(z(i)/dz + d_one)
        end if
 
        n = list(ix,iy,iz)%list(0) + 1
