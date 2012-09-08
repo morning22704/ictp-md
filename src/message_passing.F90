@@ -18,8 +18,9 @@ module message_passing
   integer :: ioproc !< Rank of the message process that does i/o
 
   public :: mp_init, mp_header, mp_finish
-  public :: mp_error, mp_bcast
+  public :: mp_error, mp_bcast, mp_sync
   public :: mp_ioproc
+  public :: mp_get_num, mp_get_rank
 
   interface mp_bcast
      module procedure bcast_int
@@ -39,10 +40,26 @@ contains
   !> Returns true if this is an io task
   function mp_ioproc()
     implicit none
-    logical mp_ioproc
+    logical :: mp_ioproc
 
     mp_ioproc = (myrank == ioproc)
   end function mp_ioproc
+
+  !> Returns the rank in the parallel environment
+  function mp_get_rank()
+    implicit none
+    integer :: mp_get_rank
+
+    mp_get_rank = myrank
+  end function mp_get_rank
+
+  !> Returns the number of processes in the parallel environment
+  function mp_get_num()
+    implicit none
+    integer :: mp_get_num
+
+    mp_get_num = nprocs
+  end function mp_get_num
 
   !> Initialize message passing environment
   subroutine mp_init
@@ -104,6 +121,16 @@ contains
     stop 'Fatal error'
 #endif
   end subroutine mp_error
+
+  !> Synchronize MPI tasks
+  subroutine mp_sync
+    implicit none
+    integer :: ierr
+
+#if defined(_USE_MPI)
+    call mpi_barrier(comm,ierr)
+#endif
+  end subroutine mp_sync
 
   subroutine bcast_int(val)
     implicit none
