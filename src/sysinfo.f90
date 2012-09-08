@@ -9,7 +9,6 @@ module sysinfo_io
   use constants
   use atoms,           only: ndeftypes
   use message_passing, only: mp_ioproc, mp_bcast, mp_error
-  use threading,       only: thr_get_num_threads
   use control_io,      only: is_restart
   implicit none
 
@@ -227,7 +226,7 @@ contains
     call mp_bcast(neigh_skin)
     call mp_bcast(newton)
     call cell_replicate
-    call atoms_replicate(newton)
+    call atoms_replicate
 
   end subroutine sysinfo_read
 
