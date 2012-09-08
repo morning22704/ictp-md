@@ -3,7 +3,7 @@ module atoms
   use kinds
   use constants
   use io, only: stdout
-  use threading, only: thr_get_num_threads
+  use threading, only: thr_get_num
   use message_passing, only: mp_error
   use control_io, only: is_debug
   implicit none
@@ -15,7 +15,7 @@ module atoms
   type (label_vec) :: lbl
   integer :: natoms, ntypes
   logical :: valid_x_r, valid_x_s
-  logical :: have_chg, have_pos, have_vel
+  logical :: have_chg, have_pos, have_vel, newton
   integer, parameter :: ndeftypes = 16
 
   public :: atoms_init, atoms_setup, atoms_replicate, types_init
@@ -40,7 +40,8 @@ contains
     have_chg   = .false.
     have_pos   = .false.
     have_vel   = .false.
-    call adjust_mem(5*sp)
+    newton     = .true.
+    call adjust_mem(6*sp)
     x_r%size = -1
     vel%size = -1
     for%size = -1
@@ -59,14 +60,15 @@ contains
     call alloc_vec(lbl,maxtypes)
   end subroutine atoms_init
 
-  subroutine atoms_setup(size,newton)
+  subroutine atoms_setup(size,newton_flag)
     use memory, only: alloc_vec, clear_vec
     integer, intent(in) :: size
-    logical, intent(in) :: newton
+    logical, intent(in) :: newton_flag
     integer :: nthr
 
+    newton = newton_flag
     if (newton) then
-       nthr = thr_get_num_threads()
+       nthr = thr_get_num()
     else
        nthr = 1
     end if
@@ -83,14 +85,13 @@ contains
     call clear_vec(img)
   end subroutine atoms_setup
 
-  subroutine atoms_replicate(newton)
+  subroutine atoms_replicate
     use memory, only: alloc_vec
     use message_passing, only: mp_bcast
-    logical, intent(in) :: newton
     integer :: nthr
 
     if (newton) then
-       nthr = thr_get_num_threads()
+       nthr = thr_get_num()
     else
        nthr = 1
     end if
@@ -273,11 +274,20 @@ contains
   end subroutine get_x_s
 
   subroutine get_for(x,y,z)
+    use threading, only : thr_get_rank
     real(kind=dp), pointer :: x(:), y(:), z(:)
+    integer :: offset
 
-    x => for%x
-    y => for%y
-    z => for%z
+    if (newton) then
+       offset = natoms*thr_get_rank() + 1
+       x => for%x(offset:offset+natoms)
+       y => for%y(offset:offset+natoms)
+       z => for%z(offset:offset+natoms)
+    else
+       x => for%x
+       y => for%y
+       z => for%z
+    end if
   end subroutine get_for
 
   subroutine get_typ(v)
