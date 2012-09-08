@@ -13,7 +13,8 @@ module threading
   implicit none
 
   private
-  public :: thr_init, thr_header, thr_get_num_threads
+  public :: thr_init, thr_header, thr_sync
+  public :: thr_get_num, thr_get_rank
 
   integer :: nthreads !< Number of active threads
 
@@ -31,14 +32,28 @@ contains
 !$  nthreads = omp_get_max_threads()
   end subroutine thr_init
 
+  !> Synchronize threads
+  subroutine thr_sync
+!$omp barrier
+  end subroutine thr_sync
+
   !> Read-only access to nthreads variable
   !!
   !! @returns The number of active threads
-  function thr_get_num_threads()
-    integer :: thr_get_num_threads
+  function thr_get_num()
+    integer :: thr_get_num
 
-    thr_get_num_threads = nthreads
-  end function thr_get_num_threads
+    thr_get_num = nthreads
+  end function thr_get_num
+
+  !> Read-only access to current thread id
+  function thr_get_rank()
+    integer :: thr_get_rank
+!$  integer, external :: omp_get_thread_num
+
+    thr_get_rank = 0
+!$  thr_get_rank = omp_get_thread_num()
+  end function thr_get_rank
 
   !> Print informative header text
   subroutine thr_header
