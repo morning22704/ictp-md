@@ -259,35 +259,32 @@ contains
        iy = int(y(i)/dy + d_one)
        iz = int(z(i)/dz + d_one)
 
-       if ((ix < 1) .or. (ix > nx)) then
-          if (ix < 1) then
-             n = (ix-nx-1) / nx
-          else
-             n = ix / nx
-          end if
-          call update_image(i,n,'x')
-          ix = int(x(i)/dx + d_one)
-       end if
+       do while (ix < 1)
+          ix = ix + nx
+          call update_image(i,-1,'x')
+       end do
+       do while (ix > nx)
+          ix = ix - nx
+          call update_image(i,1,'x')
+       end do
 
-       if ((iy < 1) .or. (iy > ny)) then
-          if (iy < 1) then
-             n = (iy-ny-1) / ny
-          else
-             n = iy / ny
-          end if
-          call update_image(i,n,'y')
-          iy = int(y(i)/dy + d_one)
-       end if
+       do while (iy < 1)
+          iy = iy + ny
+          call update_image(i,-1,'y')
+       end do
+       do while (iy > ny)
+          iy = iy - ny
+          call update_image(i,1,'y')
+       end do
 
-       if ((iz < 1) .or. (iz > nz)) then
-          if (iz < 1) then
-             n = (iz-nz-1) / nz
-          else
-             n = iz / nz
-          end if
-          call update_image(i,n,'z')
-          iz = int(z(i)/dz + d_one)
-       end if
+       do while (iz < 1)
+          iz = iz + nz
+          call update_image(i,-1,'z')
+       end do
+       do while (iz > nz)
+          iz = iz - nz
+          call update_image(i,1,'z')
+       end do
 
        n = list(ix,iy,iz)%list(0) + 1
        if (n > nlist) &
