@@ -158,7 +158,7 @@ contains
        call free_mat(setflag)
 
        write(stdout,*) 'Distributing and precomputing pair potential data'
-       write(stdout,*) 'Maximal global cutoff           : ', cutoff_max
+       write(stdout,*) 'Maximal overall pair cutoff     : ', cutoff_max
     end if
 
     call mp_bcast(epsil)
