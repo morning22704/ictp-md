@@ -174,19 +174,19 @@ contains
     call alloc_mat(offset,ntypes,ntypes)
     do i=1,ntypes
        do j=i,ntypes
-          lj1%m(i,j) = 48.0_dp * epsil%m(i,j) * sigma%m(i,j)**12;
+          lj1%m(i,j) = 48.0_dp * epsil%m(i,j) * sigma%m(i,j)**12
           lj1%m(j,i) = lj1%m(i,j)
-          lj2%m(i,j) = 24.0_dp * epsil%m(i,j) * sigma%m(i,j)**6;
+          lj2%m(i,j) = 24.0_dp * epsil%m(i,j) * sigma%m(i,j)**6
           lj2%m(j,i) = lj2%m(i,j)
-          lj3%m(i,j) =  4.0_dp * epsil%m(i,j) * sigma%m(i,j)**12;
+          lj3%m(i,j) =  4.0_dp * epsil%m(i,j) * sigma%m(i,j)**12
           lj3%m(j,i) = lj3%m(i,j)
-          lj4%m(i,j) =  4.0_dp * epsil%m(i,j) * sigma%m(i,j)**6;
+          lj4%m(i,j) =  4.0_dp * epsil%m(i,j) * sigma%m(i,j)**6
           lj4%m(j,i) = lj4%m(i,j)
           if (shift_pot) then
-             ratio = sigma%m(i,j) * sigma%m(i,j) / cutsq%m(i,j);
-             offset%m(i,j) = 4.0_dp * epsil%m(i,j) * (ratio**6 - ratio**3);
+             ratio = sigma%m(i,j) / cutsq%m(i,j)
+             offset%m(i,j) = 4.0_dp * epsil%m(i,j) * (ratio**12 - ratio**6)
           else
-             offset%m(i,j) = d_zero;
+             offset%m(i,j) = d_zero
           end if
           offset%m(j,i) = offset%m(i,j)
        end do
@@ -202,25 +202,30 @@ contains
     logical, intent(in) :: newton
     real(kind=dp), pointer :: x(:),y(:),z(:),fx(:),fy(:),fz(:)
     type(neigh_cell) :: icell, jcell
-    integer, pointer :: cell_pairs(:), atype(:)
-    logical :: half_pair
-    integer :: n, npairs, i, j, in, jn, itype, jtype
+    integer, pointer :: cell_pairs(:), atype(:), ilist(:), jlist(:)
+    logical :: half_pair, no_hit
+    integer :: n, nnum, inum, jnum, npairs, i, j, in, jn, itype, jtype, nn, nh
     real(kind=dp) :: xtmp, ytmp, ztmp, fxtmp, fytmp, fztmp, delx, dely, delz
-    real(kind=dp) :: rsq, r2inv, r6inv, fpair, epair, evdw, ioffs(3), joffs(3)
+    real(kind=dp) :: rsq, r2inv, r6inv, fpair, epair, evdw, joffs(3)
 
     npairs=get_npairs()
     call get_cell_pairs(cell_pairs)
-    call get_x_s(x,y,z)
+    call get_x_r(x,y,z)
     call get_for(fx,fy,fz)
     call get_typ(atype)
     epair = d_zero
 
-    do n=1,6*npairs-1,6
+    nn = 0
+    nh = 0
 
-       icell = get_cell(cell_pairs(n+0),cell_pairs(n+1),cell_pairs(n+2))
-       call coord_s2r(icell%offset,ioffs)
+    nnum = 6*npairs-1
+    do n=0,nnum,6
 
-       jcell = get_cell(cell_pairs(n+3),cell_pairs(n+4),cell_pairs(n+5))
+       ! check if this is a skipped cell pair
+       if (cell_pairs(n+1) < 0) cycle
+
+       icell = get_cell(cell_pairs(n+1),cell_pairs(n+2),cell_pairs(n+3))
+       jcell = get_cell(cell_pairs(n+4),cell_pairs(n+5),cell_pairs(n+6))
        call coord_s2r(jcell%offset,joffs)
 
        ! determine if we need to skip half of the pairs
@@ -230,38 +235,40 @@ contains
           half_pair = .false.
        end if
 
+       no_hit = .true.
+
        ! loop over pairs of atoms between the two cells
-       do i=1,icell%nlist
-          in = icell%list(i)
-          xtmp = x(in) + ioffs(1)
-          ytmp = y(in) + ioffs(2)
-          ztmp = z(in) + ioffs(3)
-          itype = atype(in)
+       ilist => icell%list
+       inum = ilist(0)
+       jlist => jcell%list
+       jnum = jlist(0)
+       do in=1,inum
+          i = ilist(in)
+          xtmp = x(i)
+          ytmp = y(i)
+          ztmp = z(i)
+          itype = atype(i)
           fxtmp = d_zero
           fytmp = d_zero
           fztmp = d_zero
 
-          do j=1,jcell%nlist
-             jn = jcell%list(j)
-             ! handle the case of (newton .eqv. .true.) then icell == jcell
-             if (half_pair) then
-                if (in > jn) then
-                   if (mod(in+jn,2) == 0) cycle
-                else if (in < jn) then
-                   if (mod(in+jn,2) == 1) cycle
-                else
-                   ! (in == jn)
-                   cycle
-                end if
-             end if
+          do jn=1,jnum
+             j = jlist(jn)
 
-             delx = xtmp - x(jn) - joffs(1)
-             dely = ytmp - y(jn) - joffs(2)
-             delz = ztmp - z(jn) - joffs(3)
+             ! handle cases we don't need to compute
+             if ((i == j) .or. (half_pair .and. (i > j))) cycle
+
+             jtype = atype(j)
+             delx = xtmp - x(j) + joffs(1)
+             dely = ytmp - y(j) + joffs(2)
+             delz = ztmp - z(j) + joffs(3)
              rsq = delx*delx + dely*dely + delz*delz
-             jtype = atype(jn)
+
+             write(*,fmt='(A,2I4,10F7.2)') 'p:',i,j,sqrt(rsq), &
+                  delx,dely,delz,x(i),y(i),z(i),x(j),y(j),z(j)
 
              if (rsq < cutsq%m(itype,jtype)) then
+                no_hit = .false.
                 r2inv = d_one/rsq
                 r6inv = r2inv*r2inv*r2inv
                 fpair = r6inv * (lj1%m(itype,jtype)*r6inv &
@@ -272,21 +279,33 @@ contains
                 fztmp = fztmp + delz*fpair
 
                 if (newton) then
-                   fx(jn) = fx(jn) - delx*fpair
-                   fy(jn) = fy(jn) - dely*fpair
-                   fz(jn) = fz(jn) - delz*fpair
+                   fx(j) = fx(j) - delx*fpair
+                   fy(j) = fy(j) - dely*fpair
+                   fz(j) = fz(j) - delz*fpair
                    evdw = r6inv*(lj3%m(itype,jtype)*r6inv &
                         - lj4%m(itype,jtype)) - offset%m(itype,jtype)
                 else
                    evdw = d_half * ( r6inv*(lj3%m(itype,jtype)*r6inv &
-                        - lj4%m(itype,jtype)) - offset%m(itype,jtype) )
+                        - lj4%m(itype,jtype))   - offset%m(itype,jtype) )
                 end if
                 epair = epair + evdw
              end if
           end do
+          fx(i) = fx(i) + fztmp
+          fy(i) = fy(i) + fytmp
+          fz(i) = fz(i) + fxtmp
        end do
+       if (no_hit) then
+          nn = nn + 1
+       else
+          nh = nh + 1
+       end if
     end do
     print*,'epair: ', epair
+    print*,'hits: ',nh,'  no hit:', nn
+    open(11,file='forces.xyz',form='formatted',status='unknown')
+    call xyz_write(11,'for')
+    close(11)
     
   end subroutine pair_lj_cut_compute
 
