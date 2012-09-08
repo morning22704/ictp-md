@@ -6,7 +6,7 @@ module utils
   private
   character(len=lilen) :: line
 
-  public utils_init, find_section, is_section_end
+  public utils_init, find_section, is_section_end, distribute_loop
 
 contains
 
@@ -57,4 +57,41 @@ contains
        end do
     end do
   end subroutine find_section
+
+  subroutine distribute_loop(first,last,skip,from,to,mode)
+    use message_passing, only : mp_get_num, mp_get_rank, mp_error
+    use threading, only : thr_get_num, thr_get_rank
+    integer, intent(in)   :: first, last, skip
+    character, intent(in) :: mode
+    integer, intent(out)  :: from, to
+    integer :: mnum, tnum, midx, tidx, num, chunk, nloops
+
+    mnum = 1
+    tnum = 1
+    midx = 0
+    tidx = 0
+
+    if (mode == 'b') then
+       mnum = mp_get_num()
+       tnum = thr_get_num()
+       midx = mp_get_rank()
+       tidx = thr_get_rank()
+    else if (mode == 't') then
+       tnum = thr_get_num()
+       tidx = thr_get_rank()
+    else if (mode == 'm') then
+       mnum = mp_get_num()
+       midx = mp_get_rank()
+    else
+       call mp_error('Unkown loop distribution mode',1)
+    end if
+
+    num = mnum * tnum * skip
+    chunk = last - first + 1
+    nloops = (chunk + num - 1) / num
+    from = first + nloops * skip * (tnum*midx + tidx)
+    to = from + nloops*skip - 1
+    if (to > last) to = last
+
+  end subroutine distribute_loop
 end module utils
