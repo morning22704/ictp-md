@@ -52,7 +52,6 @@ module kinds
      real(kind=dp)    :: offset(3) !< offset of the cell relative to original
      integer, pointer :: list(:)   !< list of atom indices in cell
      integer :: idx                !< unique index number of this cell
-     logical :: is_ghost           !< true if this is not a principal cell
   end type neigh_cell
 
 end module kinds
