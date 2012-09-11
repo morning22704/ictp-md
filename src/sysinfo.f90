@@ -19,7 +19,7 @@ module sysinfo_io
   integer :: neigh_every             !< frequency of neighbor update checks
   logical :: neigh_check             !< check if neighbor updates are needed
   logical :: ortho_cell              !< Cell is orthogonal
-  logical :: newton                  !< employ newton's 3rd law
+  logical :: newton                  !< Apply Newton's 3rd law
   real(kind=dp) :: cellparam(6)         !< a, b, c, alpha, beta, gamma
   real(kind=dp) :: origin(3)            !< simulation cell origin
   real(kind=dp) :: neigh_skin           !< neighborlist skin distance
@@ -33,9 +33,9 @@ module sysinfo_io
   character(len=lilen) :: velfile    !< name of velocity file
 
   namelist /sysinfo/ maxtypes, neigh_level, neigh_delay, neigh_every, &
-       neigh_check, ortho_cell, newton, &
-       origin, cellparam, neigh_skin, neigh_ratio, defmass, defcharge, &
-       deftype, inpformat, topfile, posfile, velfile
+       neigh_check, ortho_cell, newton, origin, cellparam, neigh_skin, &
+       neigh_ratio, defmass, defcharge, deftype, &
+       inpformat, topfile, posfile, velfile
 
   public :: sysinfo_init, sysinfo_read, sysinfo_write
   public :: get_neigh_nlevel, get_neigh_ratio, get_neigh_skin, get_neigh_check
@@ -251,7 +251,7 @@ contains
        idx = index(line,' ')
        if ((idx > 16) .or. (idx < 1)) idx = 16
        name = line(1:idx)
-       line = line(idx+1:)
+       line = adjustl(line(idx+1:))
 
        thistype = set_type(i,name)
        if (thistype > ndeftypes) &
@@ -260,7 +260,7 @@ contains
        call set_idx(i,i)
        call set_charge(i,defcharge(thistype))
        call set_mass(thistype,defmass(thistype))
-       read(line,fmt=*,iostat=ierr) pos(1),pos(2),pos(3)
+       read(line,fmt=*,iostat=ierr) pos
        if (ierr /= 0) &
             call mp_error('Failure to read coordinates from xyz file',ierr)
        call set_pos(i,pos)
@@ -316,7 +316,7 @@ contains
        line = adjustl(line)
        idx = index(line,' ');
        if (idx > 0) line = line(idx:)
-       read(line,fmt=*,iostat=ierr) pos(1),pos(2),pos(3)
+       read(line,fmt=*,iostat=ierr) pos
        if (ierr /= 0) &
             call mp_error('Failure to read coordinates from xyz file',ierr)
        call set_pos(i,pos)
