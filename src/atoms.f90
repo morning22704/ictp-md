@@ -14,16 +14,22 @@ module atoms
   type (int_vec)   :: typ, idx, map, img
   type (label_vec) :: lbl
   integer :: natoms, ntypes
-  logical :: valid_x_r, valid_x_s
-  logical :: have_chg, have_pos, have_vel, newton
+  logical :: valid_x_r, valid_x_s, newton
+  logical :: have_chg, have_pos, have_vel
   integer, parameter :: ndeftypes = 16
 
   public :: atoms_init, atoms_setup, atoms_replicate, types_init
   public :: set_type, set_idx, set_mass, set_charge, set_pos, set_vel
   public :: get_ntypes, get_natoms, get_x_r, get_x_s, get_for, get_typ
   public :: is_chg, is_pos, is_vel
-  public :: update_image, force_clear, xyz_write, coord_s2r
+  public :: update_image, force_clear, xyz_write, coord_s2r, copy_vec
   public :: ndeftypes
+
+  interface copy_vec
+     module procedure copy_vec_xyz
+!     module procedure copy_vec_dp
+!     module procedure copy_vec_int
+  end interface
 
 contains
 
@@ -72,6 +78,7 @@ contains
     else
        nthr = 1
     end if
+
     call alloc_vec(x_r,size)
     call alloc_vec(x_s,size)
     call alloc_vec(vel,size)
@@ -90,12 +97,14 @@ contains
     use message_passing, only: mp_bcast
     integer :: nthr
 
+    call mp_bcast(natoms)
+    call mp_bcast(newton)
     if (newton) then
        nthr = thr_get_num()
     else
        nthr = 1
     end if
-    call mp_bcast(natoms)
+
     call mp_bcast(x_r)
     valid_x_r = .true.
     valid_x_s = .false.
@@ -346,6 +355,31 @@ contains
        write(channel,fmt='(A17,3G21.13)') lbl%v(typ%v(i)), x(i), y(i), z(i)
     end do
   end subroutine xyz_write
+
+  subroutine copy_vec_xyz(vec,what)
+    use io, only : stdout
+    type (xyz_vec), intent(inout) :: vec
+    character(len=3), intent(in) :: what
+
+    if (what == 'pos') then
+       call lambda2x
+       vec%x(:) = x_r%x(:)
+       vec%y(:) = x_r%y(:)
+       vec%z(:) = x_r%z(:)
+    else if (what == 'vel') then
+       vec%x(:) = vel%x(:)
+       vec%y(:) = vel%y(:)
+       vec%z(:) = vel%z(:)
+       vec = vel
+    else if (what == 'for') then
+       vec%x(:) = for%x(1:natoms)
+       vec%y(:) = for%y(1:natoms)
+       vec%z(:) = for%z(1:natoms)
+    else
+       return
+    end if
+
+  end subroutine copy_vec_xyz
 
   !>   convert box coords to triclinic 0-1 lamda coords for all atoms
   !!   lamda = H^-1 (x - x0)
