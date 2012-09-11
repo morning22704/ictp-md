@@ -203,20 +203,18 @@ contains
     real(kind=dp), pointer :: x(:),y(:),z(:),fx(:),fy(:),fz(:)
     type(neigh_cell) :: icell, jcell
     integer, pointer :: cell_pairs(:), atype(:), ilist(:), jlist(:)
-    logical :: half_pair, no_hit
-    integer :: n, nnum, inum, jnum, npairs, i, j, in, jn, itype, jtype, nn, nh
+    integer :: n, nnum, inum, jnum, npairs, ncells
+    integer :: idx, jdx, i, j, in, jn, itype, jtype
     real(kind=dp) :: xtmp, ytmp, ztmp, fxtmp, fytmp, fztmp, delx, dely, delz
-    real(kind=dp) :: rsq, r2inv, r6inv, fpair, epair, evdw, joffs(3)
+    real(kind=dp) :: rsq, r2inv, r6inv, fpair, epair, evdwl, joffs(3)
 
     npairs=get_npairs()
+    ncells=get_ncells()
     call get_cell_pairs(cell_pairs)
     call get_x_r(x,y,z)
     call get_for(fx,fy,fz)
     call get_typ(atype)
     epair = d_zero
-
-    nn = 0
-    nh = 0
 
     nnum = 6*npairs-1
     do n=0,nnum,6
@@ -226,27 +224,21 @@ contains
 
        icell = get_cell(cell_pairs(n+1),cell_pairs(n+2),cell_pairs(n+3))
        jcell = get_cell(cell_pairs(n+4),cell_pairs(n+5),cell_pairs(n+6))
+       idx = icell%idx
+       jdx = jcell%idx
        call coord_s2r(jcell%offset,joffs)
-
-       ! determine if we need to skip half of the pairs
-       if ((icell%idx == jcell%idx).and.newton) then
-          half_pair = .true.
-       else
-          half_pair = .false.
-       end if
-
-       no_hit = .true.
 
        ! loop over pairs of atoms between the two cells
        ilist => icell%list
        inum = ilist(0)
        jlist => jcell%list
        jnum = jlist(0)
+
        do in=1,inum
           i = ilist(in)
-          xtmp = x(i)
-          ytmp = y(i)
-          ztmp = z(i)
+          xtmp = x(i) - joffs(1)
+          ytmp = y(i) - joffs(2)
+          ztmp = z(i) - joffs(3)
           itype = atype(i)
           fxtmp = d_zero
           fytmp = d_zero
@@ -256,53 +248,46 @@ contains
              j = jlist(jn)
 
              ! handle cases we don't need to compute
-             if ((i == j) .or. (half_pair .and. (i > j))) cycle
-
+             if ((idx == jdx) .and. (i == j)) cycle
+             if ((idx == jdx) .and. newton) then
+                if ((i > j).and. (mod(i+j,2)==0)) cycle
+                if ((i < j).and. (mod(i+j,2)==1)) cycle
+             end if
              jtype = atype(j)
-             delx = xtmp - x(j) + joffs(1)
-             dely = ytmp - y(j) + joffs(2)
-             delz = ztmp - z(j) + joffs(3)
+             delx = xtmp - x(j)
+             dely = ytmp - y(j)
+             delz = ztmp - z(j)
              rsq = delx*delx + dely*dely + delz*delz
 
-             write(*,fmt='(A,2I4,10F7.2)') 'p:',i,j,sqrt(rsq), &
-                  delx,dely,delz,x(i),y(i),z(i),x(j),y(j),z(j)
-
              if (rsq < cutsq%m(itype,jtype)) then
-                no_hit = .false.
                 r2inv = d_one/rsq
                 r6inv = r2inv*r2inv*r2inv
                 fpair = r6inv * (lj1%m(itype,jtype)*r6inv &
                      - lj2%m(itype,jtype)) * r2inv
+                evdwl = r6inv*(lj3%m(itype,jtype)*r6inv &
+                     - lj4%m(itype,jtype)) - offset%m(itype,jtype)
 
                 fxtmp = fxtmp + delx*fpair
                 fytmp = fytmp + dely*fpair
                 fztmp = fztmp + delz*fpair
 
-                if (newton) then
+                if (newton .and. (jdx < ncells)) then
                    fx(j) = fx(j) - delx*fpair
                    fy(j) = fy(j) - dely*fpair
                    fz(j) = fz(j) - delz*fpair
-                   evdw = r6inv*(lj3%m(itype,jtype)*r6inv &
-                        - lj4%m(itype,jtype)) - offset%m(itype,jtype)
+                   epair = epair + evdwl
                 else
-                   evdw = d_half * ( r6inv*(lj3%m(itype,jtype)*r6inv &
-                        - lj4%m(itype,jtype))   - offset%m(itype,jtype) )
+                   epair = epair + d_half * evdwl
                 end if
-                epair = epair + evdw
              end if
           end do
           fx(i) = fx(i) + fztmp
           fy(i) = fy(i) + fytmp
           fz(i) = fz(i) + fxtmp
        end do
-       if (no_hit) then
-          nn = nn + 1
-       else
-          nh = nh + 1
-       end if
     end do
-    print*,'epair: ', epair
-    print*,'hits: ',nh,'  no hit:', nn
+
+    write(*,fmt='(A,F15.8)') 'epair: ', epair
     open(11,file='forces.xyz',form='formatted',status='unknown')
     call xyz_write(11,'for')
     close(11)
