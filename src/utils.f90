@@ -19,7 +19,7 @@ contains
 
   !> Find the end of a namelist like section
   !!
-  !! @params string Line of text to check for the marker
+  !! \param string Line of text to check for the marker
   function is_section_end(string)
     logical is_section_end
     character(len=*), intent(in) :: string
@@ -33,8 +33,8 @@ contains
 
   !> Find the beginning of a namelist like section
   !!
-  !! @params channel Input channel to read from
-  !! @params section Name of the section
+  !! \param channel Input channel to read from
+  !! \param section Name of the section
   subroutine find_section(channel,section)
     use message_passing, only: mp_error
     integer, intent(in) :: channel
@@ -68,12 +68,12 @@ contains
 
   !> Compute loop range for loops that are scattered across processors
   !!
-  !! @params first The first index of the loop
-  !! @params last  The last index of the loop
-  !! @params skip  The number of indices to skip over per loop iteration
-  !! @params from  The computed first index of the scattered loop
-  !! @params to    The computed last index of the scattered loop
-  !! @params mode  A character indicating the mode (m: message passing,
+  !! \param first The first index of the loop
+  !! \param last  The last index of the loop
+  !! \param skip  The number of indices to skip over per loop iteration
+  !! \param from  The computed first index of the scattered loop
+  !! \param to    The computed last index of the scattered loop
+  !! \param mode  A character indicating the mode (m: message passing,
   !!               t: threading, b: message passing and threading)
   subroutine distribute_loop(first,last,skip,from,to,mode)
     use message_passing, only : mp_get_num, mp_get_rank, mp_error
