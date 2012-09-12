@@ -67,6 +67,7 @@ contains
     real(kind=dp) :: cutsq, ratio, hmat(6), offset(3), delta(3)
     integer :: nlevel, i, j, k, ip, jp, kp, n, idx, jdx, npruned, nstencil
 
+    ! retrieve and prepare system info
     call get_hmat(hmat)
     nlevel = get_neigh_nlevel()
     ratio  = get_neigh_ratio()
@@ -76,6 +77,7 @@ contains
     newton = get_newton()
 
     ! deallocate previously allocated storage
+    ! only required on storage explicitly allocated here
     if (.not. first_call) then
        do i=1,nx
           do j=1,ny
@@ -90,26 +92,37 @@ contains
     end if
 
     ! compute local cell grid. allow cutoff larger than 1/2 cell
-    nx = int(dble(nlevel)*hmat(1)/cutoff)
+    nx = int(dble(nlevel)*hmat(1)/cutoff*d_half)
     if (nx < 1) nx = 1
-    ny = int(dble(nlevel)*hmat(2)/cutoff)
+    ny = int(dble(nlevel)*hmat(2)/cutoff*d_half)
     if (ny < 1) ny = 1
-    nz = int(dble(nlevel)*hmat(3)/cutoff)
+    nz = int(dble(nlevel)*hmat(3)/cutoff*d_half)
     if (nz < 1) nz = 1
 
+    ! fraction of cell dimension
     dx = d_one/dble(nx)
     dy = d_one/dble(ny)
     dz = d_one/dble(nz)
+
+    ! determine number of ghost cells needed for cutoff
     ngx = int(cutoff/(dx*hmat(1))+d_one)
     ngy = int(cutoff/(dy*hmat(2))+d_one)
     ngz = int(cutoff/(dz*hmat(3))+d_one)
+
+    ! totals
     ncells = nx*ny*nz
     nghosts = (nx+2*ngx)*(nz+2*ngz)*(nz+2*ngz) - ncells
     nstencil = (2*ngx+1)*(2*ngz+1)*(2*ngz+1)
+    ! max. number of atoms per cell.
     nlist = int(dble(get_natoms())/dble(ncells)*ratio)
 
+    ! allocate grid of cells. real and ghosts.
     allocate(list(1-ngx:nx+ngx,1-ngy:ny+ngy,1-ngz:nz+ngz))
     call adjust_mem((ncells+nghosts)*(4*dp+sp))
+    list(:,:,:)%idx = -1
+
+    ! allocate list of atoms in real cells and index them starting at 0.
+    ! thus an index that is smaller than "ncells" indicates a real cell.
     idx = 0
     do k=1,nz
        do j=1,ny
@@ -122,7 +135,10 @@ contains
     end do
     call adjust_mem(ncells*(nlist+1)*sp)
 
-    ! map ghost cells to non-ghosts
+    ! map ghost cells to non-ghosts and assign indices to them as well.
+    ! loop over all cells and compute for for ghost cells, what their
+    ! corresponding real cell would be. we record this in offset().
+    offset(:) = d_zero
     do kp=1-ngz,nz+ngz
        offset(3) = d_zero
        k = kp
@@ -159,10 +175,16 @@ contains
                 offset(1) = offset(1) + d_one
              end do
 
+             ! assign the offset in scaled coordinates
+             ! this makes it of generic use for variable
+             ! and tilted cells.
              list(ip,jp,kp)%offset(:) = offset(:)
+
              ! if we have a ghost cell, assign pointer to original cell
-             if ((ip < 1) .or. (ip > nx) .or. (jp < 1) .or. (jp > ny) &
-                  .or. (kp < 1) .or. (kp > nz)) then
+             ! and assign an index. %idx is initialized to -1, and at this
+             ! point we only have idx assigned to 0:ncells-1 for the real
+             ! cells so we can use this as a simple test to identify ghosts.
+             if (list(ip,jp,kp)%idx < 0) then
                 list(ip,jp,kp)%list => list(i,j,k)%list
                 list(ip,jp,kp)%idx = idx
                 idx = idx + 1
@@ -171,14 +193,19 @@ contains
        end do
     end do
 
-    ! compute an upper level of entries for cell pair list
-    npairs = ncells*((2*ngx+1)*(2*ngz+1)*(2*ngz+1))
+    ! build a list of cell pairs to process by looping over the non-ghost
+    ! cells as first cell and looping over a stencil around as second cell.
+    ! we can permanently skip all cells pairs that are too far apart (e.g.
+    ! for non-cubic simulation boxes). this is refined in the neighbor_build
+    ! call based on current atom positions and number of atoms per cell.
 
-    ! build a list of all cell pairs by looping over the non-ghost cells,
-    ! taking a stencil around it and pruning off all cells pairs that are
-    ! too far apart. this is refined in the neighbor_build call based on
-    ! current atom positions plus neighbor skin.
+    ! compute an upper level of entries for the cell pair list
+    ! this would be needed for newton set to false. for newton
+    ! set to true we'd have less, but that number is not easy
+    ! to compute. we get the real number of cell pair by counting.
+    npairs = ncells*((2*ngx+1)*(2*ngz+1)*(2*ngz+1))
     call alloc_vec(cell_pairs,6*npairs)
+
     n = 0
     npruned = 0
     do k=1,nz
@@ -189,7 +216,9 @@ contains
                    do ip=i-ngx,i+ngx
 
                       jdx = list(ip,jp,kp)%idx
-                      ! for real j cells, we have to skip half of the pairs 
+                      ! for real j cells, we have to skip half of the pairs
+                      ! we do this in a more complicated way to have a better
+                      ! load balance between individual chunks of pairs.
                       if (newton .and. (jdx < ncells)) then
                          idx = list(i,j,k)%idx
                          if ((idx > jdx) .and. (mod(idx+jdx,2)==0)) cycle
@@ -197,24 +226,16 @@ contains
                       end if
 
                       ! check if this cell pair can be skipped completely
-                      if (i /= ip) then
-                         delta(1) = dx * (abs(ip-i) - 1)
-                      else
-                         delta(1) = d_zero
-                      end if
-                      if (j /= jp) then
-                         delta(2) = dy * (abs(jp-j) - 1)
-                      else
-                         delta(2) = d_zero
-                      end if
-                      if (k /= kp) then
-                         delta(3) = dz * (abs(kp-k) - 1)
-                      else
-                         delta(3) = d_zero
-                      end if
-                      call coord_s2r(delta,offset)
+                      delta(1) = dx * (abs(ip-i) - 1)
+                      if (i == ip) delta(1) = d_zero
+                      delta(2) = dy * (abs(jp-j) - 1)
+                      if (j == jp) delta(2) = d_zero
+                      delta(3) = dz * (abs(kp-k) - 1)
+                      if (k == kp) delta(3) = d_zero
+                      call coord_s2r(delta,offset,.false.)
 
-                      ! don't add cell pairs at all that are too far away
+                      ! add cell pair to the list, but only if there is
+                      ! a chance that atoms might be within the cutoff
                       if (sum(offset*offset) > cutsq) then
                          npruned = npruned + 1
                       else
@@ -233,7 +254,6 @@ contains
        end do
     end do
     npairs = n
-    if (do_check) call alloc_vec(old_pos,get_natoms())
 
     ! print status only by io task and only on first call
     if (first_call .and. mp_ioproc()) then
@@ -259,8 +279,10 @@ contains
     ! print status only by io task and only on first call
     if (first_call .and. mp_ioproc()) then
        write(stdout,*) 'Maximum actual atoms per cell   : ', maxlist
-       write(stdout,fmt='(A,F15.2)') ' Dynamically pruned cell pairs   : ', &
+       write(stdout,fmt='(A,F13.0)') ' Dynamically pruned cell pairs   : ', &
             sumpruned/dble(nbuild)
+       write(stdout,fmt='(A,F13.0)') ' Cell pairs after 2nd pruning    : ', &
+            npairs-sumpruned/dble(nbuild)
        call memory_print
     end if
     first_call = .false.
@@ -271,7 +293,7 @@ contains
   subroutine neighbor_build
     use io
     use atoms, only : get_natoms, get_x_s, get_x_r, coord_s2r, &
-         update_image, copy_vec
+         update_image, copy_vec, xyz_write
     use sysinfo_io, only : get_neigh_nlevel
     real(kind=dp), pointer :: x(:), y(:), z(:)
     integer, pointer :: ilist(:), jlist(:), cp(:)
@@ -281,9 +303,8 @@ contains
     logical :: hit
 
     natoms = get_natoms()
-    call get_x_s(x,y,z)
 
-    ! clear list entries
+    ! reset cell list entries
     do iz=1,nz
        do iy=1,ny
           do ix=1,nx
@@ -292,11 +313,15 @@ contains
        end do
     end do
 
-    ! compute atom position 
+    ! compute cell index location for atom positions in scaled
+    ! coordinates box. wrap atoms into principal box and update image flags.
+    call get_x_s(x,y,z)
     do i=1,natoms
-       ix = int(x(i)/dx+d_one)
-       iy = int(y(i)/dy+d_one)
-       iz = int(z(i)/dz+d_one)
+       ! NOTE: we have to use floor() and not int() here
+       ! since int(-0.5) returns 0, while floor(-0.5) returns -1
+       ix = floor(x(i)/dx) + 1
+       iy = floor(y(i)/dy) + 1
+       iz = floor(z(i)/dz) + 1
 
        do while (ix < 1)
           ix = ix + nx
@@ -350,7 +375,7 @@ contains
        inum = ilist(0)
        jlist => jcell%list
        jnum = jlist(0)
-       call coord_s2r(jcell%offset,joffs)
+       call coord_s2r(jcell%offset,joffs,.false.)
 
        hit = .false.
        do in=1,inum
