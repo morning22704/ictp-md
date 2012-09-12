@@ -324,7 +324,8 @@ contains
   end function is_vel
 
   subroutine xyz_write(channel,what)
-    use io, only : stdout
+    use io,     only : stdout
+    use memory, only : alloc_vec, free_vec
     integer, intent(in)          :: channel
     character(len=3), intent(in) :: what
     type (xyz_vec) :: vec
@@ -332,9 +333,17 @@ contains
     integer :: i
 
     if (what == 'pos') then
-       write(stdout,*) 'Writing out positions in xyz format'
+       write(stdout,*) 'Writing out unwrapped positions in xyz format'
+       call alloc_vec(vec,natoms)
+       call lambda2pos(vec)
+    else if (what == 'x_r') then
+       write(stdout,*) 'Writing out wrapped positions in xyz format'
        vec = x_r
        call lambda2x
+    else if (what == 'x_s') then
+       write(stdout,*) 'Writing out scaled positions in xyz format'
+       vec = x_s
+       call x2lambda
     else if (what == 'vel') then
        write(stdout,*) 'Writing out velocities in xyz format '
        vec = vel
@@ -354,18 +363,31 @@ contains
     do i=1,natoms
        write(channel,fmt='(A17,3G21.13)') lbl%v(typ%v(i)), x(i), y(i), z(i)
     end do
+
+    ! avoid memory leak when using a copy
+    if (what == 'pos') then
+       call free_vec(vec)
+    end if
   end subroutine xyz_write
 
   subroutine copy_vec_xyz(vec,what)
-    use io, only : stdout
+    use memory, only : alloc_vec
     type (xyz_vec), intent(inout) :: vec
     character(len=3), intent(in) :: what
 
+    call alloc_vec(vec,natoms)
     if (what == 'pos') then
+       call lambda2pos(vec)
+    else if (what == 'x_r') then
        call lambda2x
        vec%x(:) = x_r%x(:)
        vec%y(:) = x_r%y(:)
        vec%z(:) = x_r%z(:)
+    else if (what == 'x_s') then
+       call x2lambda
+       vec%x(:) = x_s%x(:)
+       vec%y(:) = x_s%y(:)
+       vec%z(:) = x_s%z(:)
     else if (what == 'vel') then
        vec%x(:) = vel%x(:)
        vec%y(:) = vel%y(:)
@@ -375,14 +397,12 @@ contains
        vec%x(:) = for%x(1:natoms)
        vec%y(:) = for%y(1:natoms)
        vec%z(:) = for%z(1:natoms)
-    else
-       return
     end if
 
   end subroutine copy_vec_xyz
 
-  !>   convert box coords to triclinic 0-1 lamda coords for all atoms
-  !!   lamda = H^-1 (x - x0)
+  !>   convert box coords to triclinic 0-1 lambda coords for all atoms
+  !!   lambda = H^-1 (x - x0)
   subroutine x2lambda
     use cell, only: get_origin, get_hinv
     real(kind=dp) :: origin(3), hinv(6), delta(3)
@@ -402,11 +422,13 @@ contains
        x_s%y(i) = hinv(2)*delta(2) + hinv(4)*delta(3)
        x_s%z(i) = hinv(3)*delta(3)
     end do
+
     valid_x_s = .true.
+
   end subroutine x2lambda
 
-  !> convert triclinic 0-1 lamda coords to box coords for all atoms
-  !! x = H lamda + x0;
+  !> convert triclinic 0-1 lambda coords to box coords for all atoms
+  !! x = H lambda + x0;
   subroutine lambda2x
     use cell, only: get_origin, get_hmat
     real(kind=dp) :: origin(3), hmat(6), x,y,z
@@ -429,15 +451,54 @@ contains
     valid_x_r = .true.
   end subroutine lambda2x
 
-  !> convert single triclinic 0-1 lamda coord to box coords
-  !! x = H lamda + x0;
-  subroutine coord_s2r(ivec,ovec)
+  !> convert triclinic 0-1 lambda coords to box coords
+  !! and unwrap according to image flags in the process
+  subroutine lambda2pos(vec)
+    use cell, only: get_origin, get_hmat
+    type (xyz_vec), intent(inout) :: vec
+    real(kind=dp) :: origin(3), hmat(6), x,y,z
+    integer :: i,n,mx,my,mz
+
+    if (.not.valid_x_s) call x2lambda
+
+    call get_origin(origin)
+    call get_hmat(hmat)
+    do i=1,natoms
+       n = img%v(i)
+       mx = 0
+       my = 0
+       mz = 0
+       call mvbits(n, 0,10,mx,0)
+       call mvbits(n,10,10,my,0)
+       call mvbits(n,20,10,mz,0)
+       if (mx > 512) mx = mx - 1024
+       if (my > 512) my = my - 1024
+       if (mz > 512) mz = mz - 1024
+       x = x_s%x(i) + dble(mx)
+       y = x_s%y(i) + dble(my)
+       z = x_s%z(i) + dble(mz)
+
+       vec%x(i) = hmat(1)*x + hmat(6)*y + hmat(5)*z + origin(1)
+       vec%y(i) = hmat(2)*y + hmat(4)*z + origin(2)
+       vec%z(i) = hmat(3)*z + origin(3)
+    end do
+
+  end subroutine lambda2pos
+
+  !> convert single triclinic 0-1 lambda coord to box coords
+  !! x = H lambda + x0;
+  subroutine coord_s2r(ivec,ovec,add_origin)
     use cell, only: get_origin, get_hmat
     real(kind=dp), intent(in)  :: ivec(3)
+    logical, intent(in) :: add_origin
     real(kind=dp), intent(out) :: ovec(3)
     real(kind=dp) :: origin(3), hmat(6)
 
-    call get_origin(origin)
+    if (add_origin) then
+       call get_origin(origin)
+    else
+       origin(:) = d_zero
+    end if
     call get_hmat(hmat)
 
     ovec(1) = hmat(1)*ivec(1) + hmat(6)*ivec(2) + hmat(5)*ivec(3) + origin(1)
@@ -457,27 +518,30 @@ contains
     character, intent(in) :: d
     integer :: m, o
 
+    if (.not. valid_x_s) call x2lambda
+
     if (d == 'x') then
-       o = 1
+       o = 0
        x_s%x(i) = x_s%x(i) - n*d_one
        valid_x_r = .false.
     else if (d == 'y') then
-       o = 11
+       o = 10
        x_s%y(i) = x_s%y(i) - n*d_one
        valid_x_r = .false.
     else if (d == 'z') then
-       o = 21
+       o = 20
        x_s%z(i) = x_s%z(i) - n*d_one
        valid_x_r = .false.
     else
-       o = 31
+       o = 30
     endif
 
     m = 0
-    call mvbits(img%v(i),o,10,m,1)
+    call mvbits(img%v(i),o,10,m,0)
     if (m > 512) m = m - 1024 
     m = m + n
-    call mvbits(m,1,10,img%v(i),o)
+    if (m < 0) m = m + 1024
+    call mvbits(m,0,10,img%v(i),o)
 
   end subroutine update_image
 
