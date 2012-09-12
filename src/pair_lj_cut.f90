@@ -226,7 +226,7 @@ contains
        jcell = get_cell(cell_pairs(n+4),cell_pairs(n+5),cell_pairs(n+6))
        idx = icell%idx
        jdx = jcell%idx
-       call coord_s2r(jcell%offset,joffs)
+       call coord_s2r(jcell%offset,joffs,.false.)
 
        ! loop over pairs of atoms between the two cells
        ilist => icell%list
