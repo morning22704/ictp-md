@@ -1,5 +1,52 @@
 !> Module for neighbor/cell list generation
-
+!!
+!! This module implements cell lists to allow O(N) scaling of short-range
+!! pairwise potentials with a cutoff (including the short-range part of
+!! ewald summation based electrostatics). The process has 3 major components:
+!! 1) the construction of the basic grid of cells and a list of pairs of
+!! these cells which will be used in the pair potentials as outer loop.
+!! 2) updating of the lists with the current atom positions. at this
+!! "reneigboring" step, also coordinates are wrapped back into the principal
+!! simulation cell and its image flags updated correspondingly. 3) testing
+!! whether an update of the list of atoms per cell is necessary.
+!!
+!! Each cell is represented by a derived type (i.e. a "struct") containing
+!! a unique index, an offset vector and a pointer to a list of the atoms 
+!! that are contained in this cell. Index 0 of this list contains the number
+!!  of atoms currently in the list.
+!! The entire grid of cells consists on a inner part of "real" cells that
+!! represent the simulation cell and a surrounding halo of "ghost" cells.
+!! The real cells hold the original lists of atoms, while for the ghost
+!! cell the atom list points to the corresponding real cell. For ghost cells
+!! the offset vector indicates how it is translated (in full cell diameters)
+!! relative to the original cell. The cell index element (idx) is defined so
+!! that the real cells have lower indices as ghost cells.
+!!
+!! The number of cells are determined by the largest cutoff plus
+!! the neigh_skin input variable and the neigh_level input variable.
+!! The resulting cell diameters plus cutoff+skin determines how many ghost
+!! cells are required and what size of a stencil of cells is required to 
+!! build the list of cell pairs.
+!! The construction of this list of cell pairs loops over the normal cells
+!! as the first item and then over the stencil of cells around it that would
+!! contain all atoms within the cutoff. Since the stencil is based on x,y,
+!! and z cell diameters only, for higher neigh_level values, a number of cell
+!! pairs can be eliminated right away. This basic construct can ususally 
+!! remain unchanged during a simulation.
+!!
+!! For the update of the cell lists itself coordinates are first converted
+!! to an orthonormal basis with x, y, z ranging between 0 and 1 and wrapped
+!! back into the principal unit cell, if needed and the image flags
+!! correspondingly updates for later unwrapping. After updating the
+!! real coordinates from this process, a second round of pruning is done
+!! where cell pairs with one empty cell or all atoms outside of cutoff+skin
+!! range are flagged as invalid through setting the x index of the first cell
+!! to be negative. This way the cell pair can be reactivated at the next pass.
+!! 
+!! After cell list build, the atom positions in real space are copied
+!! for a later translation test to decide dynamically, whether an update
+!! is required.
+!!
 module neighbor
   use kinds
   use constants
@@ -53,8 +100,13 @@ contains
     call adjust_mem((3*dp+sp)+dp)
   end subroutine neighbor_init
 
-  !> Set up, allocate, and prepare  the basic cell list data
+  !> Set up, allocate, and prepare the basic cell list data
+  !! \param max_cutoff Largest cutoff for any pair interaction
+  !!
   !! When called the first time, print out diagnostic info.
+  !! When called for any additional times deallocate allocated storage. 
+  !! This part of the cell list build should only be needed very
+  !! infrequently (for variable cell calculations).
   subroutine neighbor_setup(max_cutoff)
     use io
     use message_passing, only: mp_error
@@ -386,7 +438,6 @@ contains
 
           do jn=1,jnum
              j = jlist(jn)
-
              delx = xtmp - x(j)
              dely = ytmp - y(j)
              delz = ztmp - z(j)
@@ -423,6 +474,8 @@ contains
   end function get_ncells
 
   !> Return the number of cell pairs
+  !!
+  !! \returns The value of npairs
   function get_npairs()
     integer :: get_npairs
 
@@ -430,6 +483,8 @@ contains
   end function get_npairs
 
   !> Give access to the list of cell pairs
+  !!
+  !! \param ptr Pointer to store the list of cell pairs in
   subroutine get_cell_pairs(ptr)
     integer, pointer :: ptr(:)
 
@@ -437,9 +492,14 @@ contains
   end subroutine get_cell_pairs
 
   !> Return cell info based on i,j,k indices
-  !! @param i x index of the cell
-  !! @param j y index of the cell
-  !! @param k z index of the cell
+  !!
+  !! \param i x index of the cell
+  !! \param j y index of the cell
+  !! \param k z index of the cell
+  !! \returns The cell list element
+  !!
+  !! This is an accessort method for parts of the code
+  !! looping over the list of cell pairs.
   function get_cell(i,j,k)
     type(neigh_cell) :: get_cell
     integer, intent(in) :: i,j,k
